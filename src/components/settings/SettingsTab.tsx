@@ -4,7 +4,7 @@ import { FileSpreadsheet, Moon, Sun, Tag, Plus, Edit2, Trash2 } from 'lucide-rea
 import * as XLSX from 'xlsx';
 import { CategoryModal } from './CategoryModal';
 import type { Category } from '../../types/finance';
-import { CategoryIcon, CategoryBadge } from '../../utils/categoryIcons';
+import { CategoryBadge } from '../../utils/categoryIcons';
 
 export const SettingsTab: React.FC = () => {
   const { transactions, categories, deleteCategory, exchangeRate, setExchangeRate, isDarkMode, setIsDarkMode } = useFinance();

@@ -3,7 +3,7 @@ import { useFinance } from '../../context/FinanceContext';
 import { Search, Trash2, Edit2, ChevronDown, Download } from 'lucide-react';
 import type { CurrencyMode, TimePreset } from '../../types/finance';
 import * as XLSX from 'xlsx';
-import { CategoryIcon, CategoryBadge } from '../../utils/categoryIcons';
+import { CategoryBadge } from '../../utils/categoryIcons';
 
 export const TransactionsTab: React.FC = () => {
   const { transactions, categories, deleteTransaction, exchangeRate, currencyMode, setCurrencyMode, setEditingTransaction, setViewingTransaction } = useFinance();

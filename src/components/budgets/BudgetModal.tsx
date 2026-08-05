@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useFinance } from '../../context/FinanceContext';
 import type { Currency } from '../../types/finance';
-import { X, Calendar, ChevronDown, Check } from 'lucide-react';
+import { X, Calendar, ChevronDown } from 'lucide-react';
 import { CustomCalendarPicker } from '../common/CustomCalendarPicker';
 
 interface BudgetModalProps {

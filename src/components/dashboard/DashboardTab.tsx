@@ -4,7 +4,7 @@ import { TrendingUp, TrendingDown, Wallet, Calendar } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, RadialLinearScale, PointElement, LineElement, Filler, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Doughnut, PolarArea, Bar, Line, Pie, Radar } from 'react-chartjs-2';
 import type { TimePreset } from '../../types/finance';
-import { CategoryIcon, CategoryBadge } from '../../utils/categoryIcons';
+import { CategoryBadge } from '../../utils/categoryIcons';
 
 ChartJS.register(ArcElement, Tooltip, Legend, RadialLinearScale, PointElement, LineElement, Filler, CategoryScale, LinearScale, BarElement);
 
@@ -402,7 +402,6 @@ export const DashboardTab: React.FC = () => {
           {filteredTxs.slice(0, 5).map((t) => {
             const cat = categories.find(c => c.id === t.categoryId) || { name: 'ផ្សេងៗ', color: 'from-blue-400 to-blue-600', icon: 'tag' };
             const isInc = t.type === 'income';
-            const isTailwindGradient = cat.color?.includes('from-');
 
             return (
               <div 

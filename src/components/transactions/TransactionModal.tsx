@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useFinance } from '../../context/FinanceContext';
 import type { Currency, TransactionType } from '../../types/finance';
