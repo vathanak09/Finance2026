@@ -4,6 +4,7 @@ import { Search, Trash2, Edit2, ChevronDown, Download } from 'lucide-react';
 import type { CurrencyMode, TimePreset } from '../../types/finance';
 import * as XLSX from 'xlsx';
 import { CategoryBadge } from '../../utils/categoryIcons';
+import { getLocalDateString, parseLocalDate } from '../../utils/dateUtils';
 
 export const TransactionsTab: React.FC = () => {
   const { transactions, categories, deleteTransaction, exchangeRate, currencyMode, setCurrencyMode, setEditingTransaction, setViewingTransaction } = useFinance();
@@ -31,11 +32,11 @@ export const TransactionsTab: React.FC = () => {
   const now = new Date();
   const filterByDate = (dateStr: string) => {
     if (timePreset === 'all') return true;
-    const tDate = new Date(dateStr);
+    const tDate = parseLocalDate(dateStr);
     if (isNaN(tDate.getTime())) return true;
 
     if (timePreset === 'today') {
-      const todayStr = now.toISOString().split('T')[0];
+      const todayStr = getLocalDateString(now);
       return dateStr === todayStr;
     } else if (timePreset === 'this_month') {
       return tDate.getFullYear() === now.getFullYear() && tDate.getMonth() === now.getMonth();
@@ -45,10 +46,7 @@ export const TransactionsTab: React.FC = () => {
     } else if (timePreset === 'this_year') {
       return tDate.getFullYear() === now.getFullYear();
     } else if (timePreset === 'custom' && customStart && customEnd) {
-      const start = new Date(customStart);
-      const end = new Date(customEnd);
-      end.setHours(23, 59, 59);
-      return tDate >= start && tDate <= end;
+      return dateStr >= customStart && dateStr <= customEnd;
     }
     return true;
   };
@@ -124,7 +122,7 @@ export const TransactionsTab: React.FC = () => {
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Transactions");
-    XLSX.writeFile(workbook, `Transactions_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(workbook, `Transactions_${getLocalDateString()}.xlsx`);
   };
 
   return (

@@ -4,6 +4,7 @@ import { useFinance } from '../../context/FinanceContext';
 import type { Currency } from '../../types/finance';
 import { X, Calendar, ChevronDown } from 'lucide-react';
 import { CustomCalendarPicker } from '../common/CustomCalendarPicker';
+import { getLocalDateString, formatDateDisplay } from '../../utils/dateUtils';
 
 interface BudgetModalProps {
   isOpen: boolean;
@@ -18,11 +19,11 @@ export const BudgetModal: React.FC<BudgetModalProps> = ({ isOpen, onClose }) => 
   const [isCatDropdownOpen, setIsCatDropdownOpen] = useState(false);
   const [limitAmount, setLimitAmount] = useState('');
   const [currency, setCurrency] = useState<Currency>('KHR');
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(getLocalDateString());
   const [endDate, setEndDate] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() + 1);
-    return d.toISOString().split('T')[0];
+    return getLocalDateString(d);
   });
   const [description, setDescription] = useState('');
   
@@ -41,8 +42,8 @@ export const BudgetModal: React.FC<BudgetModalProps> = ({ isOpen, onClose }) => 
       );
       setLimitAmount(editingBudget.limitAmount ? editingBudget.limitAmount.toString() : '');
       setCurrency(editingBudget.currency || 'KHR');
-      setStartDate(editingBudget.startDate || new Date().toISOString().split('T')[0]);
-      setEndDate(editingBudget.endDate || new Date().toISOString().split('T')[0]);
+      setStartDate(editingBudget.startDate || getLocalDateString());
+      setEndDate(editingBudget.endDate || getLocalDateString());
       setDescription(editingBudget.description || '');
       setActiveDatePicker(null);
       setIsCatDropdownOpen(false);
@@ -51,11 +52,11 @@ export const BudgetModal: React.FC<BudgetModalProps> = ({ isOpen, onClose }) => 
       setSelectedCategoryIds([]);
       setLimitAmount('');
       setCurrency('KHR');
-      const start = new Date().toISOString().split('T')[0];
+      const start = getLocalDateString();
       const endD = new Date();
       endD.setMonth(endD.getMonth() + 1);
       setStartDate(start);
-      setEndDate(endD.toISOString().split('T')[0]);
+      setEndDate(getLocalDateString(endD));
       setDescription('');
       setActiveDatePicker(null);
       setIsCatDropdownOpen(false);
@@ -129,15 +130,6 @@ export const BudgetModal: React.FC<BudgetModalProps> = ({ isOpen, onClose }) => 
     handleClose();
   };
 
-  // Format date display for button
-  const formatDateDisplay = (dateStr: string) => {
-    if (!dateStr) return '';
-    const parts = dateStr.split('-');
-    if (parts.length === 3) {
-      return `${parts[1]}/${parts[2]}/${parts[0]}`; // MM/DD/YYYY format like mockup (07/31/2026)
-    }
-    return dateStr;
-  };
 
   // Category summary text for trigger button
   const getCategoryDisplayText = () => {

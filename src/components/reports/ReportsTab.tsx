@@ -4,6 +4,7 @@ import { Printer, Filter } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { CategoryBadge } from '../../utils/categoryIcons';
+import { parseLocalDate } from '../../utils/dateUtils';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -31,13 +32,13 @@ export const ReportsTab: React.FC = () => {
       start = new Date(now.getFullYear(), 0, 1);
       end = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
     } else if (dateRangePreset === 'custom' && startDate && endDate) {
-      start = new Date(startDate);
-      end = new Date(endDate);
+      start = parseLocalDate(startDate);
+      end = parseLocalDate(endDate);
       end.setHours(23, 59, 59);
     }
 
     return transactions.filter((t) => {
-      const tDate = new Date(t.date);
+      const tDate = parseLocalDate(t.date);
       if (tDate < start || tDate > end) return false;
       if (flowTypeFilter !== 'all' && t.type !== flowTypeFilter) return false;
       return true;

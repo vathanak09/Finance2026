@@ -5,44 +5,12 @@ import type { Currency, TransactionType } from '../../types/finance';
 import { X, Calendar, Clock, ChevronDown, Check } from 'lucide-react';
 import { CustomCalendarPicker } from '../common/CustomCalendarPicker';
 import { CustomClockTimePicker } from '../common/CustomClockTimePicker';
+import { getLocalDateString, getLocalTimeString, formatDateDisplay, formatTime12 } from '../../utils/dateUtils';
 
 interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-const getCurrentTimeString = (): string => {
-  const d = new Date();
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  return `${hours}:${minutes}`;
-};
-
-const formatTime12 = (timeStr?: string) => {
-  const raw = timeStr || '12:00';
-  const parts = raw.split(':');
-  if (parts.length < 2) return '12:00 PM';
-  let h = parseInt(parts[0], 10);
-  const m = String(parseInt(parts[1], 10) || 0).padStart(2, '0');
-  if (isNaN(h)) return '12:00 PM';
-  const period = h >= 12 ? 'PM' : 'AM';
-  h = h % 12;
-  if (h === 0) h = 12;
-  return `${String(h).padStart(2, '0')}:${m} ${period}`;
-};
-
-const formatDateDisplay = (dateStr: string) => {
-  if (!dateStr) return '';
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const parts = dateStr.split('-');
-  if (parts.length === 3) {
-    const y = parts[0];
-    const m = parseInt(parts[1], 10) - 1;
-    const d = parts[2];
-    return `${d} ${months[m] || ''} ${y}`;
-  }
-  return dateStr;
-};
 
 export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose }) => {
   const { categories, addTransaction, updateTransaction, editingTransaction, setEditingTransaction } = useFinance();
@@ -50,8 +18,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
   const [amount, setAmount] = useState<string>('');
   const [currency, setCurrency] = useState<Currency>('KHR');
   const [categoryId, setCategoryId] = useState<string>('');
-  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [time, setTime] = useState<string>(getCurrentTimeString());
+  const [date, setDate] = useState<string>(getLocalDateString());
+  const [time, setTime] = useState<string>(getLocalTimeString());
   const [description, setDescription] = useState<string>('');
   
   // Active picker mode: null, 'date', or 'time'
@@ -71,8 +39,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
     } else {
       setAmount('');
       setDescription('');
-      setDate(new Date().toISOString().split('T')[0]);
-      setTime(getCurrentTimeString());
+      setDate(getLocalDateString());
+      setTime(getLocalTimeString());
       setActivePicker(null);
     }
   }, [editingTransaction, isOpen]);

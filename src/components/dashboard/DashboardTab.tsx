@@ -5,6 +5,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, RadialLinearScale, Point
 import { Doughnut, PolarArea, Bar, Line, Pie, Radar } from 'react-chartjs-2';
 import type { TimePreset } from '../../types/finance';
 import { CategoryBadge } from '../../utils/categoryIcons';
+import { getLocalDateString, parseLocalDate, formatDateDisplay, formatTime12 } from '../../utils/dateUtils';
 
 ChartJS.register(ArcElement, Tooltip, Legend, RadialLinearScale, PointElement, LineElement, Filler, CategoryScale, LinearScale, BarElement);
 
@@ -18,11 +19,11 @@ export const DashboardTab: React.FC = () => {
   const filteredTxs = useMemo(() => {
     const now = new Date();
     return transactions.filter(t => {
-      const tDate = new Date(t.date);
+      const tDate = parseLocalDate(t.date);
       if (isNaN(tDate.getTime())) return true;
 
       if (timePreset === 'today') {
-        const todayStr = now.toISOString().split('T')[0];
+        const todayStr = getLocalDateString(now);
         return t.date === todayStr;
       } else if (timePreset === 'last_month') {
         const lastM = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -32,10 +33,7 @@ export const DashboardTab: React.FC = () => {
       } else if (timePreset === 'this_year') {
         return tDate.getFullYear() === now.getFullYear();
       } else if (timePreset === 'custom' && customStart && customEnd) {
-        const start = new Date(customStart);
-        const end = new Date(customEnd);
-        end.setHours(23, 59, 59);
-        return tDate >= start && tDate <= end;
+        return t.date >= customStart && t.date <= customEnd;
       }
       return true;
     });
@@ -414,7 +412,7 @@ export const DashboardTab: React.FC = () => {
                   <CategoryBadge color={cat.color} icon={cat.icon} size="md" />
                   <div>
                     <h5 className="font-bold text-sm text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{cat.name}</h5>
-                    <p className="text-xs text-slate-500 mt-0.5">{t.date}{t.time ? ` (${t.time})` : ''} • {t.description || 'គ្មានការពិពណ៌នា'}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{formatDateDisplay(t.date)}{t.time ? ` • ${formatTime12(t.time)}` : ''} • {t.description || 'គ្មានការពិពណ៌នា'}</p>
                   </div>
                 </div>
                 <div className="text-right">

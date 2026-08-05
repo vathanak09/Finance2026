@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Transaction, Category, Budget, TabType, CurrencyMode } from '../types/finance';
 import { db } from '../services/firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { getLocalDateString } from '../utils/dateUtils';
 
 interface FinanceContextType {
   transactions: Transaction[];
@@ -92,7 +93,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const unsubTx = onSnapshot(collection(db, 'transactions'), (snapshot) => {
       const docs: Transaction[] = snapshot.docs.map(docSnap => {
         const d = docSnap.data();
-        const txDate = d.date || new Date().toISOString().split('T')[0];
+        const txDate = d.date || getLocalDateString();
         const txTime = d.time ? String(d.time).trim() : '12:00'; // Set legacy transaction time to 12:00 PM
         const txCreatedAt = d.createdAt 
           ? Number(d.createdAt) 
@@ -147,8 +148,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           categoryIds: d.categoryIds || (d.categoryId ? [d.categoryId] : ['all']),
           limitAmount: Number(d.limitAmount || d.limit_amount || 0),
           currency: d.currency || 'KHR',
-          startDate: d.startDate || d.start_date || new Date().toISOString().split('T')[0],
-          endDate: d.endDate || d.end_date || new Date().toISOString().split('T')[0],
+          startDate: d.startDate || d.start_date || getLocalDateString(),
+          endDate: d.endDate || d.end_date || getLocalDateString(),
           description: d.description || ''
         };
       });
