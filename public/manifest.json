@@ -1,15 +1,34 @@
 {
-  "short_name": "សៀវភៅហិរញ្ញវត្ថុ",
-  "name": "សៀវភៅហិរញ្ញវត្ថុ - React Smart Finance",
+  "name": "កម្មវិធីគ្រប់គ្រងហិរញ្ញវត្ថុ - Khmer Smart Finance",
+  "short_name": "ហិរញ្ញវត្ថុ",
+  "description": "កម្មវិធីកត់ត្រា និងគ្រប់គ្រងចំណូល ចំណាយ និងថវិកាផ្ទាល់ខ្លួន",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#00a884",
+  "categories": ["finance", "productivity", "business", "utilities"],
   "icons": [
     {
-      "src": "favicon.png",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/png"
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512 1024x1024",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512 1024x1024",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "48x48 72x72 96x96 128x128 256x256",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
-  ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#10b981",
-  "background_color": "#0f172a"
+  ]
 }

@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { FileSpreadsheet, Moon, Sun, Tag, Plus, Edit2, Trash2 } from 'lucide-react';
+import { FileSpreadsheet, Moon, Sun, Tag, Plus, Edit2, Trash2, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { CategoryModal } from './CategoryModal';
 import type { Category } from '../../types/finance';
 import { CategoryBadge } from '../../utils/categoryIcons';
+import { PWAInstallModal } from '../common/PWAInstallModal';
 
 export const SettingsTab: React.FC = () => {
   const { transactions, categories, deleteCategory, exchangeRate, setExchangeRate, isDarkMode, setIsDarkMode } = useFinance();
   
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
 
   const handleEditCategory = (cat: Category) => {
     setEditingCategory(cat);
@@ -46,6 +48,26 @@ export const SettingsTab: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto animate-fade-in">
+      {/* Install App Banner Card */}
+      <div className="glass-panel p-6 rounded-2xl md:rounded-3xl shadow-sm border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent space-y-3 relative overflow-hidden">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <img src="/icon.svg" alt="App Logo" className="w-12 h-12 rounded-2xl shadow-md flex-shrink-0" />
+            <div>
+              <h4 className="font-extrabold text-base text-slate-900 dark:text-white">ដំឡើងជា Shortcut App</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400">ប្រើប្រាស់លើ Android, iPhone (iOS) និង Windows</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsInstallModalOpen(true)}
+            className="flex items-center space-x-1.5 px-4 py-2.5 bg-[#00a884] hover:bg-emerald-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-emerald-500/25 transition-all hover:scale-105 cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            <span>ដំឡើង (Install)</span>
+          </button>
+        </div>
+      </div>
+
       {/* Exchange Rate Card */}
       <div className="glass-panel p-6 rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4 relative">
         <h4 className="font-bold text-lg text-slate-900 dark:text-white">អត្រាប្តូរប្រាក់ (Exchange Rate)</h4>
@@ -160,6 +182,11 @@ export const SettingsTab: React.FC = () => {
         isOpen={isCategoryModalOpen}
         onClose={() => setIsCategoryModalOpen(false)}
         editingCategory={editingCategory}
+      />
+
+      <PWAInstallModal 
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
       />
     </div>
   );
