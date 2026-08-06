@@ -226,48 +226,72 @@ export const DashboardTab: React.FC = () => {
         </div>
       </div>
 
-      {/* 2.1. Financial Summary Cards (Dual Currency KHR & USD) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      {/* 2.1. Financial Summary Cards (Dual Currency KHR & USD) - Compact & No Wrap */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         {/* Net Balance Card */}
-        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-5 md:p-6 rounded-[2rem] text-white shadow-xl shadow-indigo-500/30 relative overflow-hidden glass-card-hover group">
-          <div className="absolute -right-6 -bottom-6 opacity-20 text-white transform group-hover:scale-110 transition-transform duration-500"><Wallet className="w-40 h-40" /></div>
-          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          <span className="text-xs font-bold text-indigo-100 bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-md uppercase tracking-wider">សមតុល្យសុទ្ធ (Net Balance)</span>
-          <div className="mt-6 space-y-1 relative z-10">
-            <h3 className="text-4xl md:text-5xl font-black tracking-tight drop-shadow-md">
+        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-3.5 sm:p-4 md:p-4.5 rounded-2xl md:rounded-3xl text-white shadow-lg shadow-indigo-500/20 relative overflow-hidden glass-card-hover group flex flex-col justify-between min-h-[105px] sm:min-h-[120px]">
+          <div className="absolute -right-3 -bottom-3 opacity-15 text-white transform group-hover:scale-110 transition-transform duration-500 pointer-events-none">
+            <Wallet className="w-24 h-24 sm:w-28 sm:h-28" />
+          </div>
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+          
+          <div className="flex items-center justify-between relative z-10">
+            <span className="text-[10px] sm:text-xs font-bold text-indigo-100 bg-white/15 px-2.5 py-1 rounded-full backdrop-blur-md uppercase tracking-wider whitespace-nowrap">
+              សមតុល្យសុទ្ធ (Net Balance)
+            </span>
+          </div>
+          
+          <div className="mt-2 sm:mt-2.5 relative z-10 min-w-0">
+            <h3 className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-black tracking-tight drop-shadow-sm whitespace-nowrap truncate leading-none">
               {netBalanceKHR.toLocaleString()} ៛
             </h3>
-            <p className="text-base text-indigo-200 font-bold tracking-wide">
+            <p className="text-xs sm:text-sm text-indigo-200 font-bold tracking-wide whitespace-nowrap truncate mt-1 leading-none">
               ${netBalanceUSD.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
         </div>
 
         {/* Total Income Card */}
-        <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-5 md:p-6 rounded-[2rem] text-white shadow-xl shadow-blue-500/30 relative overflow-hidden glass-card-hover group">
-          <div className="absolute -right-6 -bottom-6 opacity-20 text-white transform group-hover:scale-110 transition-transform duration-500"><TrendingUp className="w-40 h-40" /></div>
-          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          <span className="text-xs font-bold text-blue-100 bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-md uppercase tracking-wider">ចំណូលសរុប (Income)</span>
-          <div className="mt-6 space-y-1 relative z-10">
-            <h3 className="text-4xl md:text-5xl font-black tracking-tight drop-shadow-md">
+        <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-3.5 sm:p-4 md:p-4.5 rounded-2xl md:rounded-3xl text-white shadow-lg shadow-blue-500/20 relative overflow-hidden glass-card-hover group flex flex-col justify-between min-h-[105px] sm:min-h-[120px]">
+          <div className="absolute -right-3 -bottom-3 opacity-15 text-white transform group-hover:scale-110 transition-transform duration-500 pointer-events-none">
+            <TrendingUp className="w-24 h-24 sm:w-28 sm:h-28" />
+          </div>
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+          
+          <div className="flex items-center justify-between relative z-10">
+            <span className="text-[10px] sm:text-xs font-bold text-blue-100 bg-white/15 px-2.5 py-1 rounded-full backdrop-blur-md uppercase tracking-wider whitespace-nowrap">
+              ចំណូលសរុប (Income)
+            </span>
+          </div>
+          
+          <div className="mt-2 sm:mt-2.5 relative z-10 min-w-0">
+            <h3 className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-black tracking-tight drop-shadow-sm whitespace-nowrap truncate leading-none">
               {totalIncInKHR.toLocaleString()} ៛
             </h3>
-            <p className="text-base text-blue-100 font-bold tracking-wide">
+            <p className="text-xs sm:text-sm text-blue-100 font-bold tracking-wide whitespace-nowrap truncate mt-1 leading-none">
               ${totalIncInUSD.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
         </div>
 
         {/* Total Expense Card */}
-        <div className="bg-gradient-to-br from-rose-500 to-orange-500 p-5 md:p-6 rounded-[2rem] text-white shadow-xl shadow-rose-500/30 relative overflow-hidden glass-card-hover group">
-          <div className="absolute -right-6 -bottom-6 opacity-20 text-white transform group-hover:scale-110 transition-transform duration-500"><TrendingDown className="w-40 h-40" /></div>
-          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          <span className="text-xs font-bold text-rose-100 bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-md uppercase tracking-wider">ចំណាយសរុប (Expense)</span>
-          <div className="mt-6 space-y-1 relative z-10">
-            <h3 className="text-4xl md:text-5xl font-black tracking-tight drop-shadow-md">
+        <div className="bg-gradient-to-br from-rose-500 to-orange-500 p-3.5 sm:p-4 md:p-4.5 rounded-2xl md:rounded-3xl text-white shadow-lg shadow-rose-500/20 relative overflow-hidden glass-card-hover group flex flex-col justify-between min-h-[105px] sm:min-h-[120px]">
+          <div className="absolute -right-3 -bottom-3 opacity-15 text-white transform group-hover:scale-110 transition-transform duration-500 pointer-events-none">
+            <TrendingDown className="w-24 h-24 sm:w-28 sm:h-28" />
+          </div>
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+          
+          <div className="flex items-center justify-between relative z-10">
+            <span className="text-[10px] sm:text-xs font-bold text-rose-100 bg-white/15 px-2.5 py-1 rounded-full backdrop-blur-md uppercase tracking-wider whitespace-nowrap">
+              ចំណាយសរុប (Expense)
+            </span>
+          </div>
+          
+          <div className="mt-2 sm:mt-2.5 relative z-10 min-w-0">
+            <h3 className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-black tracking-tight drop-shadow-sm whitespace-nowrap truncate leading-none">
               -{totalExpInKHR.toLocaleString()} ៛
             </h3>
-            <p className="text-base text-rose-100 font-bold tracking-wide">
+            <p className="text-xs sm:text-sm text-rose-100 font-bold tracking-wide whitespace-nowrap truncate mt-1 leading-none">
               -${totalExpInUSD.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
