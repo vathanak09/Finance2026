@@ -124,7 +124,7 @@ export const ReportsTab: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Control Bar (Hidden when printing) */}
-      <div className="print:hidden p-5 rounded-3xl glass-panel shadow-xl space-y-4">
+      <div className="print:hidden p-5 rounded-3xl glass-panel shadow-xl space-y-4 relative z-30">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h4 className="font-bold text-base text-slate-900 dark:text-white flex items-center space-x-2">
             <Filter className="w-4 h-4 text-blue-500" />
