@@ -10,7 +10,7 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 
 export const ReportsTab: React.FC = () => {
   const { transactions, categories, exchangeRate, getDayOnly, setViewingTransaction } = useFinance();
-  const [dateRangePreset, setDateRangePreset] = useState<'this_month' | 'last_month' | 'this_year' | 'all' | 'custom'>('this_month');
+  const [dateRangePreset, setDateRangePreset] = useState<'today' | 'this_month' | 'last_month' | 'this_year' | 'all' | 'custom'>('this_month');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [flowTypeFilter, setFlowTypeFilter] = useState<'all' | 'income' | 'expense'>('all');
@@ -22,7 +22,10 @@ export const ReportsTab: React.FC = () => {
     let start = new Date(0);
     let end = new Date(2100, 0, 1);
 
-    if (dateRangePreset === 'this_month') {
+    if (dateRangePreset === 'today') {
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    } else if (dateRangePreset === 'this_month') {
       start = new Date(now.getFullYear(), now.getMonth(), 1);
       end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
     } else if (dateRangePreset === 'last_month') {
@@ -114,6 +117,7 @@ export const ReportsTab: React.FC = () => {
               onChange={(e) => setDateRangePreset(e.target.value as any)}
               className="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer"
             >
+              <option value="today">ថ្ងៃនេះ (Today)</option>
               <option value="this_month">ខែនេះ (This Month)</option>
               <option value="last_month">ខែមុន (Last Month)</option>
               <option value="this_year">ឆ្នាំនេះ (This Year)</option>

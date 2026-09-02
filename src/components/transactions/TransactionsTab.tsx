@@ -148,6 +148,7 @@ export const TransactionsTab: React.FC = () => {
             onChange={(e) => setTimePreset(e.target.value as any)}
             className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex-shrink-0"
           >
+            <option value="today">ថ្ងៃនេះ</option>
             <option value="this_month">ខែនេះ</option>
             <option value="last_month">ខែមុន</option>
             <option value="this_year">ឆ្នាំនេះ</option>
