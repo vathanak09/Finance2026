@@ -8,6 +8,8 @@ import { DashboardTab } from './components/dashboard/DashboardTab';
 import { TransactionsTab } from './components/transactions/TransactionsTab';
 import { ReportsTab } from './components/reports/ReportsTab';
 import { BudgetsTab } from './components/budgets/BudgetsTab';
+import { AppsTab } from './components/apps/AppsTab';
+import { IncomeCalculator } from './components/apps/IncomeCalculator';
 import { SettingsTab } from './components/settings/SettingsTab';
 import { TransactionModal } from './components/transactions/TransactionModal';
 import { TransactionDetailModal } from './components/transactions/TransactionDetailModal';
@@ -33,7 +35,9 @@ const MainContent: React.FC = () => {
             {activeTab === 'dashboard' && <DashboardTab />}
             {activeTab === 'transactions' && <TransactionsTab />}
             {activeTab === 'reports' && <ReportsTab />}
+            {activeTab === 'apps' && <AppsTab />}
             {activeTab === 'budgets' && <BudgetsTab />}
+            {activeTab === 'income_calculator' && <IncomeCalculator />}
             {activeTab === 'settings' && <SettingsTab />}
           </div>
         </main>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { LayoutDashboard, Receipt, BarChart3, Wallet, Settings } from 'lucide-react';
+import { LayoutDashboard, Receipt, BarChart3, LayoutGrid, Settings } from 'lucide-react';
 import type { TabType } from '../../types/finance';
 
 export const BottomNav: React.FC = () => {
@@ -10,14 +10,14 @@ export const BottomNav: React.FC = () => {
     { id: 'dashboard', label: 'ផ្ទាំងដើម', icon: <LayoutDashboard className="w-5 h-5" /> },
     { id: 'transactions', label: 'ប្រតិបត្តិការ', icon: <Receipt className="w-5 h-5" /> },
     { id: 'reports', label: 'របាយការណ៍', icon: <BarChart3 className="w-5 h-5" /> },
-    { id: 'budgets', label: 'ថវិកា', icon: <Wallet className="w-5 h-5" /> },
+    { id: 'apps', label: 'កម្មវិធី', icon: <LayoutGrid className="w-5 h-5" /> },
     { id: 'settings', label: 'ការកំណត់', icon: <Settings className="w-5 h-5" /> }
   ];
 
   return (
     <nav className="md:hidden fixed bottom-0 w-full glass-panel border-t border-slate-200 dark:border-slate-800 flex justify-around items-center p-2 z-40 pb-safe">
       {navItems.map((item) => {
-        const isActive = activeTab === item.id;
+        const isActive = activeTab === item.id || (item.id === 'apps' && (activeTab === 'budgets' || activeTab === 'income_calculator'));
         return (
           <button
             key={item.id}

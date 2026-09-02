@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { X, Calendar, FileText, ArrowUpRight, ArrowDownLeft, Edit2, Trash2, Tag, DollarSign, Clock } from 'lucide-react';
+import { X, Calendar, FileText, ArrowUpRight, ArrowDownLeft, Edit2, Trash2, Tag, Clock } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext';
 import type { Transaction } from '../../types/finance';
 import { CategoryBadge } from '../../utils/categoryIcons';
@@ -41,6 +41,18 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
     ? `${(transaction.amount * exchangeRate).toLocaleString()} ៛`
     : `$${(transaction.amount / exchangeRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+  const formatDateDDMMYYYY = (dateStr: string) => {
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+      return dateStr;
+    } catch {
+      return dateStr;
+    }
+  };
+
   const formatTime12 = (timeStr?: string) => {
     const raw = timeStr || '12:00';
     const parts = raw.split(':');
@@ -63,16 +75,16 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[110] bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-[110] bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3.5 sm:p-4 overflow-y-auto"
       onClick={onClose}
     >
       {/* Modal Card */}
       <div
-        className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl p-5 sm:p-6 space-y-5 shadow-2xl relative z-[111] border border-slate-200 dark:border-slate-800 my-auto max-h-[92vh] overflow-y-auto"
+        className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl p-3.5 sm:p-4 space-y-3 shadow-2xl relative z-[111] border border-slate-200 dark:border-slate-800 my-auto max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
           <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center space-x-2">
             <div className={`p-1.5 rounded-lg ${isInc ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'}`}>
               {isInc ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
@@ -88,7 +100,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
         </div>
 
         {/* Hero Amount Section */}
-        <div className={`p-4 sm:p-5 rounded-2xl border text-center relative overflow-hidden ${
+        <div className={`p-3 rounded-2xl border text-center relative overflow-hidden ${
           isInc 
             ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40 text-emerald-700 dark:text-emerald-300' 
             : 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/40 text-rose-700 dark:text-rose-300'
@@ -99,11 +111,11 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                 ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' 
                 : 'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300'
             }`}>
-              {isInc ? 'ចំណូល (Income)' : 'ចំណាយ (Expense)'}
+              {isInc ? 'ចំណូល' : 'ចំណាយ'}
             </span>
           </div>
 
-          <div className="text-3xl sm:text-4xl font-black tracking-tight my-1.5">
+          <div className="text-4xl sm:text-5xl font-black tracking-tighter my-2">
             {isInc ? '+' : '-'}{mainAmountStr}
           </div>
 
@@ -114,12 +126,12 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
         </div>
 
         {/* Transaction Details List */}
-        <div className="space-y-3 bg-slate-50 dark:bg-slate-950/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+        <div className="space-y-2.5 bg-slate-50 dark:bg-slate-950/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-800">
           {/* Category Item */}
           <div className="flex items-center justify-between text-xs sm:text-sm">
             <span className="text-slate-500 dark:text-slate-400 font-medium flex items-center space-x-1.5">
               <Tag className="w-4 h-4 text-slate-400" />
-              <span>ប្រភេទ (Category)</span>
+              <span>ប្រភេទ</span>
             </span>
             <div className="flex items-center space-x-2">
               <CategoryBadge color={cat.color} icon={cat.icon} size="xs" />
@@ -136,8 +148,8 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               <span>កាលបរិច្ឆេទ & ម៉ោង</span>
             </span>
             <div className="text-right">
-              <span className="font-bold text-slate-900 dark:text-white font-mono">{transaction.date}</span>
-              <span className="ml-2 inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-mono text-[11px] font-bold">
+              <span className="font-bold text-slate-900 dark:text-white font-mono">{formatDateDDMMYYYY(transaction.date)}</span>
+              <span className="ml-2 inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-[11px] font-bold">
                 <Clock className="w-3 h-3 text-indigo-500" />
                 <span>{formatTime12(transaction.time)}</span>
               </span>
@@ -146,27 +158,14 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
           <div className="h-px bg-slate-200/60 dark:bg-slate-800" />
 
-          {/* Currency Item */}
-          <div className="flex items-center justify-between text-xs sm:text-sm">
-            <span className="text-slate-500 dark:text-slate-400 font-medium flex items-center space-x-1.5">
-              <DollarSign className="w-4 h-4 text-slate-400" />
-              <span>រូបិយប័ណ្ណដើម (Currency)</span>
-            </span>
-            <span className="font-bold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-mono text-xs">
-              {transaction.currency}
-            </span>
-          </div>
-
-          <div className="h-px bg-slate-200/60 dark:bg-slate-800" />
-
           {/* Description Item */}
-          <div className="space-y-1 text-xs sm:text-sm">
+          <div className="space-y-1.5 text-xs sm:text-sm">
             <span className="text-slate-500 dark:text-slate-400 font-medium flex items-center space-x-1.5">
               <FileText className="w-4 h-4 text-slate-400" />
-              <span>ការពិពណ៌នា (Description)</span>
+              <span>ការពិពណ៌នា</span>
             </span>
-            <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 font-normal leading-relaxed text-xs">
-              {transaction.description?.trim() ? transaction.description : 'គ្មានការពិពណ៌នាឡើយ (No Description)'}
+            <div className="p-3 rounded-xl bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 text-blue-700 dark:text-blue-400 font-medium leading-relaxed text-sm">
+              {transaction.description?.trim() ? transaction.description : 'គ្មានការពិពណ៌នាឡើយ'}
             </div>
           </div>
         </div>
@@ -179,7 +178,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
             className="flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-all cursor-pointer active:scale-98"
           >
             <Edit2 className="w-4 h-4" />
-            <span>កែប្រែ (Edit)</span>
+            <span>កែប្រែ</span>
           </button>
           <button
             type="button"
@@ -187,7 +186,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
             className="flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 font-bold text-xs sm:text-sm transition-all cursor-pointer active:scale-98"
           >
             <Trash2 className="w-4 h-4" />
-            <span>លុប (Delete)</span>
+            <span>លុប</span>
           </button>
         </div>
       </div>

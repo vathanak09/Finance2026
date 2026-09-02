@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { LayoutDashboard, Receipt, BarChart3, Wallet, Settings, Download } from 'lucide-react';
+import { LayoutDashboard, Receipt, BarChart3, LayoutGrid, Settings, Download } from 'lucide-react';
 import type { TabType } from '../../types/finance';
 import { PWAInstallModal } from '../common/PWAInstallModal';
 
@@ -12,7 +12,7 @@ export const Sidebar: React.FC = () => {
     { id: 'dashboard', label: 'ផ្ទាំងគ្រប់គ្រង', icon: <LayoutDashboard className="text-xl w-6" /> },
     { id: 'transactions', label: 'ប្រតិបត្តិការ', icon: <Receipt className="text-xl w-6" /> },
     { id: 'reports', label: 'របាយការណ៍', icon: <BarChart3 className="text-xl w-6" /> },
-    { id: 'budgets', label: 'ថវិកា', icon: <Wallet className="text-xl w-6" /> },
+    { id: 'apps', label: 'កម្មវិធី', icon: <LayoutGrid className="text-xl w-6" /> },
     { id: 'settings', label: 'ការកំណត់', icon: <Settings className="text-xl w-6" /> }
   ];
 
@@ -35,7 +35,7 @@ export const Sidebar: React.FC = () => {
 
         <nav className="flex-1 space-y-2 relative z-10 px-2">
           {navItems.map((item) => {
-            const isActive = activeTab === item.id;
+            const isActive = activeTab === item.id || (item.id === 'apps' && (activeTab === 'budgets' || activeTab === 'income_calculator'));
             return (
               <button
                 key={item.id}
