@@ -314,11 +314,11 @@ export const TransactionsTab: React.FC = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-100/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 text-xs font-black tracking-wider border-b border-slate-200 dark:border-slate-800">
-                <th className="p-3 px-4">កាលបរិច្ឆេទ</th>
-                <th className="p-3 px-4">ចំនួនទឹកប្រាក់</th>
-                <th className="p-3 px-4">ប្រភេទ</th>
-                <th className="p-3 px-4">ការពិពណ៌នា</th>
-                <th className="p-3 px-4 text-center">សកម្មភាព</th>
+                <th className="p-2 sm:p-3 px-2 sm:px-4">កាលបរិច្ឆេទ</th>
+                <th className="p-2 sm:p-3 px-2 sm:px-4">ចំនួនទឹកប្រាក់</th>
+                <th className="p-2 sm:p-3 px-2 sm:px-4">ប្រភេទ</th>
+                <th className="p-2 sm:p-3 px-2 sm:px-4">ការពិពណ៌នា</th>
+                <th className="p-2 sm:p-3 px-2 sm:px-4 text-center">សកម្មភាព</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -352,12 +352,12 @@ export const TransactionsTab: React.FC = () => {
                       title="ចុចដើម្បីមើលព័ត៌មានលម្អិត"
                     >
                       {/* Date Column: DD.MM only, single line unwrap */}
-                      <td className="p-3 px-4 font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                      <td className="p-2 sm:p-3 px-2 sm:px-4 font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap">
                         {formattedDate}
                       </td>
 
                       {/* Amount Column: Original entered currency, single line unwrap */}
-                      <td className={`p-3 px-4 font-black whitespace-nowrap ${isInc ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      <td className={`p-2 sm:p-3 px-2 sm:px-4 font-black whitespace-nowrap ${isInc ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                         {isInc ? '+' : '-'}{displayAmountStr}
                       </td>
 
@@ -372,14 +372,14 @@ export const TransactionsTab: React.FC = () => {
                       </td>
 
                       {/* Description Column: max 2 lines */}
-                      <td className="p-3 px-4 text-xs text-slate-600 dark:text-slate-300">
+                      <td className="p-2 sm:p-3 px-2 sm:px-4 text-xs text-slate-600 dark:text-slate-300">
                         <p className="line-clamp-2 max-w-[220px] leading-tight">
                           {t.description || '-'}
                         </p>
                       </td>
 
                       {/* Actions Column: single line unwrap */}
-                      <td className="p-3 px-4 whitespace-nowrap">
+                      <td className="p-2 sm:p-3 px-2 sm:px-4 whitespace-nowrap">
                         <div className="flex items-center justify-center space-x-1.5" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => setEditingTransaction(t)}

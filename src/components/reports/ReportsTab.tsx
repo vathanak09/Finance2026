@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { Printer, Filter, Search, ChevronDown } from 'lucide-react';
+import { Search, ChevronDown, X } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { CategoryBadge } from '../../utils/categoryIcons';
@@ -9,10 +9,22 @@ import { parseLocalDate } from '../../utils/dateUtils';
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export const ReportsTab: React.FC = () => {
-  const { transactions, categories, exchangeRate, getDayOnly, setViewingTransaction } = useFinance();
+  const { transactions, categories, exchangeRate, setViewingTransaction, currencyMode, setCurrencyMode } = useFinance();
   const [dateRangePreset, setDateRangePreset] = useState<'today' | 'this_month' | 'last_month' | 'this_year' | 'all' | 'custom'>('this_month');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+
+  const formatDateDayMonth = (dateStr: string) => {
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        return `${parts[2]}.${parts[1]}`;
+      }
+      return dateStr;
+    } catch {
+      return dateStr;
+    }
+  };
   const [flowTypeFilter, setFlowTypeFilter] = useState<'all' | 'income' | 'expense'>('all');
   
   // New filter states
@@ -20,6 +32,8 @@ export const ReportsTab: React.FC = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isCatDropdownOpen, setIsCatDropdownOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  
+  const [selectedCategoryForDetails, setSelectedCategoryForDetails] = useState<{ id: string, name: string, type: 'income' | 'expense' } | null>(null);
 
   const toggleCategory = (catId: string) => {
     setSelectedCategories(prev =>
@@ -61,6 +75,8 @@ export const ReportsTab: React.FC = () => {
       if (tDate < start || tDate > end) return false;
       if (flowTypeFilter !== 'all' && t.type !== flowTypeFilter) return false;
       if (selectedCategories.length > 0 && !selectedCategories.includes(t.categoryId)) return false;
+      if (currencyMode === 'USD_ONLY' && t.currency !== 'USD') return false;
+      if (currencyMode === 'KHR_ONLY' && t.currency !== 'KHR') return false;
       
       if (searchTerm) {
         const cat = categories.find(c => c.id === t.categoryId);
@@ -79,7 +95,7 @@ export const ReportsTab: React.FC = () => {
       const timeB = b.createdAt || (b.time ? new Date(`${b.date}T${b.time}:00`).getTime() : new Date(b.date).getTime());
       return sortOrder === 'newest' ? timeB - timeA : timeA - timeB;
     });
-  }, [transactions, dateRangePreset, startDate, endDate, flowTypeFilter, selectedCategories, searchTerm, sortOrder, categories]);
+  }, [transactions, dateRangePreset, startDate, endDate, flowTypeFilter, selectedCategories, searchTerm, sortOrder, categories, currencyMode]);
 
   // Totals calculation
   let totalIncUSD = 0, totalExpUSD = 0, totalIncKHR = 0, totalExpKHR = 0;
@@ -91,57 +107,72 @@ export const ReportsTab: React.FC = () => {
     }
   });
 
+  const displayIncKHR = totalIncKHR + (totalIncUSD * exchangeRate);
+  const displayExpKHR = totalExpKHR + (totalExpUSD * exchangeRate);
+  const displayIncUSD = totalIncUSD + (totalIncKHR / exchangeRate);
+  const displayExpUSD = totalExpUSD + (totalExpKHR / exchangeRate);
+
   // Category breakdown chart data
-  const categoryTotals: Record<string, { name: string; color: string; icon?: string; amountUSD: number }> = {};
+  const categoryTotals: Record<string, { id: string; name: string; color: string; icon?: string; amountUSD: number; type: 'income' | 'expense' }> = {};
   filteredTxs.forEach(t => {
     const amtUSD = t.currency === 'USD' ? t.amount : t.amount / exchangeRate;
-    if (!categoryTotals[t.categoryId]) {
+    const key = `${t.type}-${t.categoryId}`;
+    if (!categoryTotals[key]) {
       const cat = categories.find(c => c.id === t.categoryId) || { name: 'ផ្សេងៗ', color: '#94a3b8', icon: 'tag' };
-      categoryTotals[t.categoryId] = { name: cat.name, color: cat.color || '#94a3b8', icon: cat.icon, amountUSD: 0 };
+      categoryTotals[key] = { id: t.categoryId, name: cat.name, color: cat.color || '#94a3b8', icon: cat.icon, amountUSD: 0, type: t.type };
     }
-    categoryTotals[t.categoryId].amountUSD += amtUSD;
+    categoryTotals[key].amountUSD += amtUSD;
   });
 
-  const chartLabels = Object.values(categoryTotals).map(c => c.name);
-  const chartDataValues = Object.values(categoryTotals).map(c => c.amountUSD);
-  const chartColors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#64748b'];
+  const incomeCategories = Object.values(categoryTotals).filter(c => c.type === 'income').sort((a, b) => b.amountUSD - a.amountUSD);
+  const expenseCategories = Object.values(categoryTotals).filter(c => c.type === 'expense').sort((a, b) => b.amountUSD - a.amountUSD);
 
-  const doughnutData = {
-    labels: chartLabels,
+  const getHexFromTailwindClass = (colorClass: string) => {
+    if (colorClass.includes('emerald')) return '#10b981';
+    if (colorClass.includes('blue')) return '#3b82f6';
+    if (colorClass.includes('teal')) return '#14b8a6';
+    if (colorClass.includes('purple')) return '#8b5cf6';
+    if (colorClass.includes('pink')) return '#ec4899';
+    if (colorClass.includes('rose')) return '#f43f5e';
+    if (colorClass.includes('amber')) return '#f59e0b';
+    if (colorClass.includes('red')) return '#ef4444';
+    if (colorClass.includes('orange')) return '#f97316';
+    if (colorClass.includes('yellow')) return '#eab308';
+    if (colorClass.includes('green')) return '#22c55e';
+    if (colorClass.includes('cyan')) return '#06b6d4';
+    if (colorClass.includes('indigo')) return '#6366f1';
+    if (colorClass.includes('fuchsia')) return '#d946ef';
+    return colorClass.startsWith('#') ? colorClass : '#94a3b8'; // fallback to slate-400
+  };
+
+  const incomeDoughnutData = {
+    labels: incomeCategories.map(c => c.name),
     datasets: [
       {
-        data: chartDataValues,
-        backgroundColor: chartColors.slice(0, chartLabels.length),
+        data: incomeCategories.map(c => c.amountUSD),
+        backgroundColor: incomeCategories.map(c => getHexFromTailwindClass(c.color)),
         borderWidth: 0,
       },
     ],
   };
 
-  const handlePrint = () => {
-    window.print();
+  const expenseDoughnutData = {
+    labels: expenseCategories.map(c => c.name),
+    datasets: [
+      {
+        data: expenseCategories.map(c => c.amountUSD),
+        backgroundColor: expenseCategories.map(c => getHexFromTailwindClass(c.color)),
+        borderWidth: 0,
+      },
+    ],
   };
 
+
+
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 animate-fade-in">
       {/* Control Bar (Hidden when printing) */}
-      <div className="print:hidden p-5 rounded-3xl glass-panel shadow-xl space-y-4 relative z-30">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h4 className="font-bold text-base text-slate-900 dark:text-white flex items-center space-x-2">
-            <Filter className="w-4 h-4 text-blue-500" />
-            <span>តម្រងទិន្នន័យរបាយការណ៍ (Report Filters)</span>
-          </h4>
-
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={handlePrint}
-              className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-2xl text-xs sm:text-sm shadow-lg shadow-blue-500/30 transition-all cursor-pointer"
-            >
-              <Printer className="w-4 h-4 text-white" />
-              <span>🖨️ បោះពុម្ព (Print Canvas)</span>
-            </button>
-          </div>
-        </div>
-
+      <div className="print:hidden glass-panel p-2.5 px-4 rounded-2xl shadow-sm relative z-30">
         <div className="flex flex-wrap items-center gap-2">
           {/* Search Input */}
           <div className="relative flex-shrink-0 w-44 md:w-56">
@@ -267,115 +298,253 @@ export const ReportsTab: React.FC = () => {
         )}
       </div>
 
-      {/* Canva Printable Canvas */}
-      <div id="report-canvas" className="p-6 md:p-8 rounded-3xl glass-panel shadow-2xl space-y-6">
-        {/* Report Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">របាយការណ៍ហិរញ្ញវត្ថុផ្ទាល់ខ្លួន (Financial Report)</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">សៀវភៅហិរញ្ញវត្ថុ • កាលបរិច្ឆេទ៖ {new Date().toLocaleDateString('km-KH')}</p>
+      {/* Row 2: Currency Selector & Summary Cards */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          {/* Left: Currency selector */}
+          <div className="flex items-center space-x-2 bg-slate-50/90 dark:bg-slate-900/90 p-2 px-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+            <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300">ទិន្នន័យ៖</span>
+            <select
+              value={currencyMode}
+              onChange={(e) => setCurrencyMode(e.target.value as any)}
+              className="bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl px-3 py-1.5 text-xs font-black text-emerald-700 dark:text-emerald-400 outline-none cursor-pointer hover:bg-emerald-100/60 transition-colors"
+            >
+              <option value="MERGED_KHR">បញ្ចូលគ្នារក KHR (៛)</option>
+              <option value="MERGED_USD">បញ្ចូលគ្នារក USD ($)</option>
+              <option value="USD_ONLY">USD តែប៉ុណ្ណោះ</option>
+              <option value="KHR_ONLY">KHR តែប៉ុណ្ណោះ</option>
+            </select>
           </div>
-          <div className="text-right">
-            <span className="px-3 py-1 bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 font-bold text-xs rounded-full">
-              Canva Print Ready
-            </span>
-          </div>
-        </div>
 
-        {/* Financial Summary */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-100 dark:bg-slate-900/80 p-4.5 rounded-2xl border border-slate-200 dark:border-slate-800">
-          <div>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">ចំណូលសរុប (KHR)</span>
-            <p className="text-base font-extrabold text-blue-600 dark:text-blue-400 mt-0.5">{totalIncKHR.toLocaleString()} ៛</p>
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">ចំណាយសរុប (KHR)</span>
-            <p className="text-base font-extrabold text-rose-600 dark:text-rose-400 mt-0.5">{totalExpKHR.toLocaleString()} ៛</p>
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">ចំណូលសរុប (USD)</span>
-            <p className="text-base font-extrabold text-blue-600 dark:text-blue-400 mt-0.5">${totalIncUSD.toLocaleString()}</p>
-          </div>
-          <div>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">ចំណាយសរុប (USD)</span>
-            <p className="text-base font-extrabold text-rose-600 dark:text-rose-400 mt-0.5">${totalExpUSD.toLocaleString()}</p>
+          {/* Right: Summary cards */}
+          <div className="flex items-center space-x-3">
+            {/* Income card */}
+            <div className="p-3 px-6 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 shadow-sm text-right min-w-[140px]">
+              <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 block mb-0.5">ចំណូល</span>
+              <h3 className="text-lg md:text-xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+                {currencyMode === 'MERGED_USD' || currencyMode === 'USD_ONLY'
+                  ? `$${displayIncUSD.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : `${Math.round(displayIncKHR).toLocaleString()} ៛`
+                }
+              </h3>
+            </div>
+
+            {/* Expense card */}
+            <div className="p-3 px-6 rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/40 shadow-sm text-right min-w-[140px]">
+              <span className="text-xs font-extrabold text-rose-700 dark:text-rose-400 block mb-0.5">ចំណាយ</span>
+              <h3 className="text-lg md:text-xl font-black text-rose-600 dark:text-rose-400 tracking-tight">
+                {currencyMode === 'MERGED_USD' || currencyMode === 'USD_ONLY'
+                  ? `$${displayExpUSD.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : `${Math.round(displayExpKHR).toLocaleString()} ៛`
+                }
+              </h3>
+            </div>
           </div>
         </div>
 
         {/* Category Breakdown Chart & Legend */}
-        {chartDataValues.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center bg-slate-100 dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
-            <div className="w-48 h-48 mx-auto">
-              <Doughnut data={doughnutData} options={{ plugins: { legend: { display: false } }, maintainAspectRatio: true, animation: false }} />
-            </div>
-            <div className="md:col-span-2 space-y-3">
-              <h4 className="font-bold text-xs text-slate-500 dark:text-slate-300 uppercase tracking-wider">ការបែងចែកតាមប្រភេទ (Category Breakdown)</h4>
-              <div className="grid grid-cols-2 gap-2.5 text-xs">
-                {Object.values(categoryTotals).map((cat, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                    <div className="flex items-center space-x-2">
-                      <CategoryBadge color={cat.color} icon={cat.icon} size="xs" />
-                      <span className="font-semibold text-slate-700 dark:text-slate-200">{cat.name}</span>
+        {(incomeCategories.length > 0 || expenseCategories.length > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start bg-slate-100 dark:bg-slate-900/60 p-3 md:p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
+            {expenseCategories.length > 0 && (
+              <div className="space-y-4">
+                <h4 className="font-bold text-xs text-rose-500 dark:text-rose-400 uppercase tracking-wider text-center">ចំណាយ (Expenses)</h4>
+                <div className="w-48 h-48 mx-auto">
+                  <Doughnut data={expenseDoughnutData} options={{ plugins: { legend: { display: false } }, maintainAspectRatio: true, animation: false }} />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                  {expenseCategories.map((cat, idx) => (
+                    <div 
+                      key={`exp-${idx}`} 
+                      onClick={() => setSelectedCategoryForDetails({ id: cat.id, name: cat.name, type: 'expense' })}
+                      className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <div className="flex items-center space-x-2 truncate pr-2">
+                        <CategoryBadge color={cat.color} icon={cat.icon} size="xs" />
+                        <span className="font-semibold text-slate-700 dark:text-slate-200 truncate">{cat.name}</span>
+                      </div>
+                      <span className="font-bold text-rose-500 dark:text-rose-400 whitespace-nowrap">{(cat.amountUSD * exchangeRate).toLocaleString()} ៛</span>
                     </div>
-                    <span className="font-bold text-rose-500 dark:text-rose-400">{(cat.amountUSD * exchangeRate).toLocaleString()} ៛</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {incomeCategories.length > 0 && (
+              <div className="space-y-4">
+                <h4 className="font-bold text-xs text-blue-500 dark:text-blue-400 uppercase tracking-wider text-center">ចំណូល (Income)</h4>
+                <div className="w-48 h-48 mx-auto">
+                  <Doughnut data={incomeDoughnutData} options={{ plugins: { legend: { display: false } }, maintainAspectRatio: true, animation: false }} />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                  {incomeCategories.map((cat, idx) => (
+                    <div 
+                      key={`inc-${idx}`} 
+                      onClick={() => setSelectedCategoryForDetails({ id: cat.id, name: cat.name, type: 'income' })}
+                      className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <div className="flex items-center space-x-2 truncate pr-2">
+                        <CategoryBadge color={cat.color} icon={cat.icon} size="xs" />
+                        <span className="font-semibold text-slate-700 dark:text-slate-200 truncate">{cat.name}</span>
+                      </div>
+                      <span className="font-bold text-blue-500 dark:text-blue-400 whitespace-nowrap">{(cat.amountUSD * exchangeRate).toLocaleString()} ៛</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Detailed Transactions Table - Displaying DAY ONLY */}
+
+        {/* Detailed Transactions Table - Displaying like TransactionsTab */}
         <div className="space-y-3">
           <h4 className="font-bold text-xs text-slate-500 dark:text-slate-300 uppercase tracking-wider">បញ្ជីប្រតិបត្តិការលម្អិត</h4>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800">
-                  <th className="p-3 w-14 text-center">ថ្ងៃ</th>
-                  <th className="p-3">ប្រភេទ (Tag)</th>
-                  <th className="p-3">ការពិពណ៌នា</th>
-                  <th className="p-3 text-right">ចំនួនទឹកប្រាក់</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                {filteredTxs.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="p-6 text-center text-slate-500 dark:text-slate-400 font-medium">មិនមានប្រតិបត្តិការក្នុងកំឡុងពេលនេះឡើយ</td>
+          <div className="glass-panel rounded-2xl md:rounded-3xl shadow-sm overflow-hidden border border-slate-200/80 dark:border-slate-800">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-100/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 text-xs font-black tracking-wider border-b border-slate-200 dark:border-slate-800">
+                    <th className="p-2 sm:p-3 px-2 sm:px-4">កាលបរិច្ឆេទ</th>
+                    <th className="p-2 sm:p-3 px-2 sm:px-4">ចំនួនទឹកប្រាក់</th>
+                    <th className="p-2 sm:p-3 px-2 sm:px-4">ប្រភេទ</th>
+                    <th className="p-2 sm:p-3 px-2 sm:px-4">ការពិពណ៌នា</th>
                   </tr>
-                ) : (
-                  filteredTxs.map((t) => {
-                    const cat = categories.find(c => c.id === t.categoryId) || { name: 'ផ្សេងៗ', color: '#94a3b8', icon: 'tag' };
-                    const dayNum = getDayOnly(t.date);
-                    const isInc = t.type === 'income';
-                    return (
-                      <tr 
-                        key={t.id} 
-                        onClick={() => setViewingTransaction(t)}
-                        className="hover:bg-blue-50/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
-                        title="ចុចដើម្បីមើលព័ត៌មានលម្អិត"
-                      >
-                        {/* DAY ONLY COLUMN */}
-                        <td className="p-2.5 text-center font-extrabold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-900 rounded-lg">{dayNum}</td>
-                        <td className="p-2.5">
-                          <div className="flex items-center space-x-2">
-                            <CategoryBadge color={cat.color} icon={cat.icon} size="xs" />
-                            <span className="font-semibold text-slate-700 dark:text-slate-200">{cat.name}</span>
-                          </div>
-                        </td>
-                        <td className="p-2.5 text-slate-500 dark:text-slate-400">{t.description || '-'}</td>
-                        <td className={`p-2.5 text-right font-bold ${isInc ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                          {isInc ? '+' : '-'}{t.currency === 'USD' ? '$' : ''}{t.amount.toLocaleString()}{t.currency === 'KHR' ? ' ៛' : ''}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                  {filteredTxs.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="py-12 text-center text-slate-400 font-medium text-xs">
+                        មិនមានទិន្នន័យប្រតិបត្តិការឡើយ! (No transactions found)
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredTxs.map((t) => {
+                      const cat = categories.find(c => c.id === t.categoryId) || { name: 'ផ្សេងៗ', color: 'from-blue-400 to-blue-600', icon: 'tag' };
+                      const isInc = t.type === 'income';
+                      const formattedDate = formatDateDayMonth(t.date);
+                      const displayAmountStr = t.currency === 'USD'
+                        ? `$${t.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : `${t.amount.toLocaleString()} ៛`;
+
+                      return (
+                        <tr 
+                          key={t.id} 
+                          onClick={() => setViewingTransaction(t)}
+                          className={`transition-colors text-xs cursor-pointer ${
+                            isInc 
+                              ? 'bg-emerald-50/20 hover:bg-emerald-50/70 dark:bg-emerald-950/10 dark:hover:bg-emerald-950/40' 
+                              : 'bg-rose-50/20 hover:bg-rose-50/70 dark:bg-rose-950/10 dark:hover:bg-rose-950/40'
+                          }`}
+                          title="ចុចដើម្បីមើលព័ត៌មានលម្អិត"
+                        >
+                          <td className="p-2 sm:p-3 px-2 sm:px-4 font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                            {formattedDate}
+                          </td>
+                          <td className={`p-2 sm:p-3 px-2 sm:px-4 font-black whitespace-nowrap ${isInc ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                            {isInc ? '+' : '-'}{displayAmountStr}
+                          </td>
+                          <td className="p-2 sm:p-3 px-2 sm:px-4">
+                            <div className="flex items-center space-x-1.5 sm:space-x-2">
+                              <CategoryBadge color={cat.color} icon={cat.icon} size="xs" />
+                              <span className="font-normal text-[10px] sm:text-xs text-slate-700 dark:text-slate-300 line-clamp-2 max-w-[75px] sm:max-w-[140px] leading-tight">
+                                {cat.name}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-2 sm:p-3 px-2 sm:px-4 text-xs text-slate-600 dark:text-slate-300">
+                            <p className="line-clamp-2 max-w-[220px] leading-tight">
+                              {t.description || '-'}
+                            </p>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
+      
+      {/* Category Details Modal */}
+      {selectedCategoryForDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedCategoryForDetails(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+              <h3 className="font-extrabold text-slate-800 dark:text-white text-base sm:text-lg">
+                ប្រតិបត្តិការ៖ <span className={selectedCategoryForDetails.type === 'income' ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600 dark:text-rose-400'}>{selectedCategoryForDetails.name}</span>
+              </h3>
+              <button 
+                onClick={() => setSelectedCategoryForDetails(null)}
+                className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-slate-500"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-auto p-4 sm:p-5">
+              <div className="glass-panel rounded-2xl shadow-sm overflow-hidden border border-slate-200/80 dark:border-slate-800">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 text-xs font-black tracking-wider border-b border-slate-200 dark:border-slate-800">
+                        <th className="p-2 sm:p-3 px-2 sm:px-4">កាលបរិច្ឆេទ</th>
+                        <th className="p-2 sm:p-3 px-2 sm:px-4">ចំនួនទឹកប្រាក់</th>
+                        <th className="p-2 sm:p-3 px-2 sm:px-4">ប្រភេទ</th>
+                        <th className="p-2 sm:p-3 px-2 sm:px-4">ការពិពណ៌នា</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                      {filteredTxs.filter(t => t.categoryId === selectedCategoryForDetails.id && t.type === selectedCategoryForDetails.type).map((t) => {
+                        const cat = categories.find(c => c.id === t.categoryId) || { name: 'ផ្សេងៗ', color: 'from-blue-400 to-blue-600', icon: 'tag' };
+                        const isInc = t.type === 'income';
+                        const formattedDate = formatDateDayMonth(t.date);
+                        const displayAmountStr = t.currency === 'USD'
+                          ? `$${t.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                          : `${t.amount.toLocaleString()} ៛`;
+
+                        return (
+                          <tr 
+                            key={t.id} 
+                            onClick={() => {
+                              setSelectedCategoryForDetails(null);
+                              setViewingTransaction(t);
+                            }}
+                            className={`transition-colors text-xs cursor-pointer ${
+                              isInc 
+                                ? 'bg-emerald-50/20 hover:bg-emerald-50/70 dark:bg-emerald-950/10 dark:hover:bg-emerald-950/40' 
+                                : 'bg-rose-50/20 hover:bg-rose-50/70 dark:bg-rose-950/10 dark:hover:bg-rose-950/40'
+                            }`}
+                          >
+                            <td className="p-2 sm:p-3 px-2 sm:px-4 font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                              {formattedDate}
+                            </td>
+                            <td className={`p-2 sm:p-3 px-2 sm:px-4 font-black whitespace-nowrap ${isInc ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                              {isInc ? '+' : '-'}{displayAmountStr}
+                            </td>
+                            <td className="p-2 sm:p-3 px-2 sm:px-4">
+                              <div className="flex items-center space-x-1.5 sm:space-x-2">
+                                <CategoryBadge color={cat.color} icon={cat.icon} size="xs" />
+                                <span className="font-normal text-[10px] sm:text-xs text-slate-700 dark:text-slate-300 line-clamp-2 max-w-[75px] sm:max-w-[140px] leading-tight">
+                                  {cat.name}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-2 sm:p-3 px-2 sm:px-4 text-xs text-slate-600 dark:text-slate-300">
+                              <p className="line-clamp-2 max-w-[220px] leading-tight">
+                                {t.description || '-'}
+                              </p>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
