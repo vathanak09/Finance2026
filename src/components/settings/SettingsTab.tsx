@@ -1,18 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { FileSpreadsheet, Moon, Sun, Tag, Plus, Edit2, Trash2, Download } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { Moon, Sun, Tag, Plus, Edit2, Trash2, Download, Upload } from 'lucide-react';
 import { CategoryModal } from './CategoryModal';
 import type { Category } from '../../types/finance';
 import { CategoryBadge } from '../../utils/categoryIcons';
 import { PWAInstallModal } from '../common/PWAInstallModal';
 
 export const SettingsTab: React.FC = () => {
-  const { transactions, categories, deleteCategory, exchangeRate, setExchangeRate, isDarkMode, setIsDarkMode } = useFinance();
+  const { 
+    transactions, categories, budgets, 
+    deleteCategory, exchangeRate, setExchangeRate, 
+    isDarkMode, setIsDarkMode, currencyMode, restoreBackup 
+  } = useFinance();
   
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleEditCategory = (cat: Category) => {
     setEditingCategory(cat);
@@ -25,25 +29,47 @@ export const SettingsTab: React.FC = () => {
     }
   };
 
-  const handleExportExcel = () => {
-    if (transactions.length === 0) return alert('មិនមានប្រតិបត្តិការដើម្បីនាំចេញឡើយ!');
+  const handleBackupJSON = () => {
+    const backupData = {
+      transactions,
+      categories,
+      budgets,
+      settings: {
+        exchangeRate,
+        isDarkMode,
+        currencyMode
+      }
+    };
+    
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `FinanceBook_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
-    const data = transactions.map(t => {
-      const cat = categories.find(c => c.id === t.categoryId) || { name: 'ផ្សេងៗ' };
-      return {
-        'កាលបរិច្ឆេទ': t.date,
-        'ប្រភេទ': cat.name,
-        'លំហូរ': t.type === 'income' ? 'ចំណូល (+)' : 'ចំណាយ (-)',
-        'ចំនួនទឹកប្រាក់': t.amount,
-        'រូបិយប័ណ្ណ': t.currency,
-        'ការពិពណ៌នា': t.description || ''
-      };
-    });
+  const handleRestoreJSON = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "ប្រតិបត្តិការទាំងអស់");
-    XLSX.writeFile(wb, `FinanceBook_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+    if (!confirm('តើអ្នកពិតជាចង់ Import ទិន្នន័យនេះចូលមែនទេ?')) {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      await restoreBackup(data);
+      alert('ទិន្នន័យត្រូវបានបញ្ជូលដោយជោគជ័យ (Restore Successful)!');
+    } catch (err) {
+      console.error(err);
+      alert('ឯកសារមិនត្រឹមត្រូវ ឬមានបញ្ហាក្នុងការបញ្ចូល។');
+    }
+    
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -166,16 +192,37 @@ export const SettingsTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Data Export Card */}
+      {/* Backup and Restore Card */}
       <div className="glass-panel p-6 rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4 relative">
-        <h4 className="font-bold text-lg text-slate-900 dark:text-white">ទាញយកទិន្នន័យ (Export Data)</h4>
-        <button
-          onClick={handleExportExcel}
-          className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl text-sm shadow-lg shadow-blue-500/30 transition-all cursor-pointer"
-        >
-          <FileSpreadsheet className="w-5 h-5" />
-          <span>ទាញយកទិន្នន័យជា Excel (.xlsx)</span>
-        </button>
+        <h4 className="font-bold text-lg text-slate-900 dark:text-white">គ្រប់គ្រងទិន្នន័យ (Backup & Restore)</h4>
+        
+        <div className="flex flex-col sm:flex-row gap-4">
+          <button
+            onClick={handleBackupJSON}
+            className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl text-sm shadow-lg shadow-blue-500/30 transition-all cursor-pointer"
+          >
+            <Download className="w-5 h-5" />
+            <span>ទាញយកទិន្នន័យ (Backup Data)</span>
+          </button>
+
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/30 transition-all cursor-pointer"
+          >
+            <Upload className="w-5 h-5" />
+            <span>បញ្ចូលទិន្នន័យ (Restore Data)</span>
+          </button>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleRestoreJSON} 
+            accept=".json" 
+            className="hidden" 
+          />
+        </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          * ការ Restore នឹងប្រើប្រាស់ទិន្នន័យថ្មីពីឯកសារ Backup របស់អ្នក។
+        </p>
       </div>
 
       <CategoryModal 

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Transaction, Category, Budget, TabType, CurrencyMode } from '../types/finance';
 import { db } from '../services/firebase';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc } from 'firebase/firestore';
 import { getLocalDateString } from '../utils/dateUtils';
 
 interface FinanceContextType {
@@ -32,6 +32,7 @@ interface FinanceContextType {
   updateCategory: (id: string, cat: Partial<Category>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
   getDayOnly: (dateStr: string) => string;
+  restoreBackup: (backupData: any) => Promise<boolean>;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -209,6 +210,46 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return dateStr;
   };
 
+  const restoreBackup = async (backupData: any): Promise<boolean> => {
+    try {
+      const promises: Promise<void>[] = [];
+      
+      if (backupData.transactions && Array.isArray(backupData.transactions)) {
+        for (const t of backupData.transactions) {
+          const { id, ...data } = t;
+          if (id) promises.push(setDoc(doc(db, 'transactions', id), data));
+        }
+      }
+      
+      if (backupData.categories && Array.isArray(backupData.categories)) {
+        for (const c of backupData.categories) {
+          const { id, ...data } = c;
+          if (id) promises.push(setDoc(doc(db, 'categories', id), data));
+        }
+      }
+      
+      if (backupData.budgets && Array.isArray(backupData.budgets)) {
+        for (const b of backupData.budgets) {
+          const { id, ...data } = b;
+          if (id) promises.push(setDoc(doc(db, 'budgets', id), data));
+        }
+      }
+      
+      await Promise.all(promises);
+
+      if (backupData.settings) {
+        if (backupData.settings.exchangeRate) setExchangeRate(backupData.settings.exchangeRate);
+        if (backupData.settings.isDarkMode !== undefined) setIsDarkMode(backupData.settings.isDarkMode);
+        if (backupData.settings.currencyMode) setCurrencyMode(backupData.settings.currencyMode);
+      }
+      
+      return true;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  };
+
   return (
     <FinanceContext.Provider value={{
       transactions,
@@ -237,7 +278,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       addCategory,
       updateCategory,
       deleteCategory,
-      getDayOnly
+      getDayOnly,
+      restoreBackup
     }}>
       {children}
     </FinanceContext.Provider>
