@@ -143,6 +143,7 @@ export const DashboardTab: React.FC = () => {
         tension: 0.4,
         borderWidth: 2,
         pointRadius: 0,
+        pointHoverRadius: 4,
       },
       {
         label: 'ចំណាយ',
@@ -153,6 +154,7 @@ export const DashboardTab: React.FC = () => {
         tension: 0.4,
         borderWidth: 2,
         pointRadius: 0,
+        pointHoverRadius: 4,
       }
     ]
   };
@@ -176,6 +178,33 @@ export const DashboardTab: React.FC = () => {
       x: {
         grid: { display: false },
         border: { display: false }
+      }
+    }
+  };
+
+  const lineChartOptions = {
+    ...chartOptions,
+    interaction: {
+      mode: 'index' as const,
+      intersect: false,
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        enabled: true,
+        intersect: false,
+        mode: 'index' as const,
+      }
+    },
+    scales: {
+      y: chartOptions.scales.y,
+      x: {
+        grid: { display: false },
+        border: { display: false },
+        ticks: {
+          maxRotation: 90,
+          minRotation: 90
+        }
       }
     }
   };
@@ -341,7 +370,7 @@ export const DashboardTab: React.FC = () => {
               <div className="flex items-center space-x-2"><div className="w-6 h-2 bg-rose-500 rounded-sm border border-rose-500/20"></div><span className="text-[10px] text-slate-500">ចំណាយ</span></div>
             </div>
             <div className="h-64">
-              <Line data={lineChartData} options={chartOptions} />
+              <Line data={lineChartData} options={lineChartOptions} />
             </div>
           </div>
 
