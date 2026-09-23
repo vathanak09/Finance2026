@@ -5,6 +5,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { CategoryBadge } from '../../utils/categoryIcons';
 import { parseLocalDate } from '../../utils/dateUtils';
+import { GoogleSheetSync } from './GoogleSheetSync';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -298,7 +299,10 @@ export const ReportsTab: React.FC = () => {
         )}
       </div>
 
-      {/* Row 2: Currency Selector & Summary Cards */}
+      {/* Google Sheet Sync */}
+      <div className="print:hidden relative z-20">
+        <GoogleSheetSync filteredTxs={filteredTxs} categories={categories} />
+      </div>      {/* Row 2: Currency Selector & Summary Cards */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* Left: Currency selector */}
           <div className="flex items-center space-x-2 bg-slate-50/90 dark:bg-slate-900/90 p-2 px-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
