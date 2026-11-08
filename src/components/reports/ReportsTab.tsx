@@ -5,6 +5,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { CategoryBadge } from '../../utils/categoryIcons';
 import { parseLocalDate } from '../../utils/dateUtils';
+import { GoogleSheetSync } from './GoogleSheetSync';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -276,6 +277,11 @@ export const ReportsTab: React.FC = () => {
             <option value="newest">ថ្មីមុន</option>
             <option value="oldest">ចាស់មុន</option>
           </select>
+
+          {/* Google Sheet Sync */}
+          <div className="sm:ml-auto flex items-center">
+            <GoogleSheetSync filteredTxs={filteredTxs} categories={categories} />
+          </div>
         </div>
 
         {dateRangePreset === 'custom' && (
