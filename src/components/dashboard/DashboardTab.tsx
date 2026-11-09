@@ -5,7 +5,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, RadialLinearScale, Point
 import { Doughnut, PolarArea, Bar, Line, Pie, Radar } from 'react-chartjs-2';
 import type { TimePreset } from '../../types/finance';
 import { CategoryBadge } from '../../utils/categoryIcons';
-import { getLocalDateString, parseLocalDate, formatDateDisplay, formatTime12 } from '../../utils/dateUtils';
+import { getLocalDateString, parseLocalDate, formatDateDisplay, formatTime12, KHMER_MONTHS, getAvailableYears } from '../../utils/dateUtils';
 
 ChartJS.register(ArcElement, Tooltip, Legend, RadialLinearScale, PointElement, LineElement, Filler, CategoryScale, LinearScale, BarElement);
 
@@ -14,6 +14,9 @@ export const DashboardTab: React.FC = () => {
   const [timePreset, setTimePreset] = useState<TimePreset>('this_month');
   const [customStart, setCustomStart] = useState<string>('');
   const [customEnd, setCustomEnd] = useState<string>('');
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const availableYears = useMemo(() => getAvailableYears(transactions), [transactions]);
 
   // Filtered transactions based on time preset
   const filteredTxs = useMemo(() => {
@@ -32,12 +35,14 @@ export const DashboardTab: React.FC = () => {
         return tDate.getFullYear() === now.getFullYear() && tDate.getMonth() === now.getMonth();
       } else if (timePreset === 'this_year') {
         return tDate.getFullYear() === now.getFullYear();
+      } else if (timePreset === 'specific_month') {
+        return tDate.getFullYear() === selectedYear && tDate.getMonth() === selectedMonth;
       } else if (timePreset === 'custom' && customStart && customEnd) {
         return t.date >= customStart && t.date <= customEnd;
       }
       return true;
     });
-  }, [transactions, timePreset, customStart, customEnd]);
+  }, [transactions, timePreset, customStart, customEnd, selectedMonth, selectedYear]);
 
   // Compute metrics in USD & KHR separately
   let incUSD = 0, expUSD = 0, incKHR = 0, expKHR = 0;
@@ -231,9 +236,33 @@ export const DashboardTab: React.FC = () => {
             <option value="last_month">ខែមុន (Last Month)</option>
             <option value="this_month">ខែនេះ (This Month)</option>
             <option value="this_year">ឆ្នាំនេះ (This Year)</option>
+            <option value="specific_month">ជ្រើសរើសខែ (Select Month)</option>
             <option value="all">ទាំងអស់ (All Time)</option>
             <option value="custom">កំណត់ថ្ងៃ (Custom Range)</option>
           </select>
+
+          {timePreset === 'specific_month' && (
+            <div className="flex items-center space-x-2 animate-slide-up">
+              <select
+                value={selectedMonth}
+                onChange={e => setSelectedMonth(Number(e.target.value))}
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm dark:text-white outline-none font-bold cursor-pointer"
+              >
+                {KHMER_MONTHS.map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+              <select
+                value={selectedYear}
+                onChange={e => setSelectedYear(Number(e.target.value))}
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm dark:text-white outline-none font-bold cursor-pointer"
+              >
+                {availableYears.map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {timePreset === 'custom' && (
             <div className="flex items-center space-x-2 animate-slide-up">

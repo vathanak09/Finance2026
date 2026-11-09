@@ -68,3 +68,37 @@ export const parseLocalDate = (dateStr: string): Date => {
   }
   return new Date(dateStr);
 };
+
+export const KHMER_MONTHS = [
+  { value: 0, label: 'ខែមករា (01)' },
+  { value: 1, label: 'ខែកុម្ភៈ (02)' },
+  { value: 2, label: 'ខែមីនា (03)' },
+  { value: 3, label: 'ខែមេសា (04)' },
+  { value: 4, label: 'ខែឧសភា (05)' },
+  { value: 5, label: 'ខែមិថុនា (06)' },
+  { value: 6, label: 'ខែកក្កដា (07)' },
+  { value: 7, label: 'ខែសីហា (08)' },
+  { value: 8, label: 'ខែកញ្ញា (09)' },
+  { value: 9, label: 'ខែតុលា (10)' },
+  { value: 10, label: 'ខែវិច្ឆិកា (11)' },
+  { value: 11, label: 'ខែធ្នូ (12)' },
+];
+
+export const getAvailableYears = (transactions?: { date?: string }[]): number[] => {
+  const currentYear = new Date().getFullYear();
+  const yearSet = new Set<number>();
+  for (let y = currentYear - 5; y <= currentYear + 2; y++) {
+    yearSet.add(y);
+  }
+  if (transactions) {
+    transactions.forEach(t => {
+      if (t.date) {
+        const y = parseInt(t.date.split('-')[0], 10);
+        if (!isNaN(y) && y > 2000 && y < 2100) {
+          yearSet.add(y);
+        }
+      }
+    });
+  }
+  return Array.from(yearSet).sort((a, b) => b - a);
+};

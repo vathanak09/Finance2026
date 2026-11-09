@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import { Search, Trash2, Edit2, ChevronDown, Download } from 'lucide-react';
 import type { CurrencyMode, TimePreset } from '../../types/finance';
 import * as XLSX from 'xlsx';
 import { CategoryBadge } from '../../utils/categoryIcons';
-import { getLocalDateString, parseLocalDate } from '../../utils/dateUtils';
+import { getLocalDateString, parseLocalDate, KHMER_MONTHS, getAvailableYears } from '../../utils/dateUtils';
 
 export const TransactionsTab: React.FC = () => {
   const { transactions, categories, deleteTransaction, exchangeRate, currencyMode, setCurrencyMode, setEditingTransaction, setViewingTransaction } = useFinance();
@@ -18,6 +18,9 @@ export const TransactionsTab: React.FC = () => {
   const [timePreset, setTimePreset] = useState<TimePreset | 'last_month' | 'all'>('this_month');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const availableYears = useMemo(() => getAvailableYears(transactions), [transactions]);
 
   const toggleCategory = (catId: string) => {
     setSelectedCategories(prev =>
@@ -45,6 +48,8 @@ export const TransactionsTab: React.FC = () => {
       return tDate.getFullYear() === lastM.getFullYear() && tDate.getMonth() === lastM.getMonth();
     } else if (timePreset === 'this_year') {
       return tDate.getFullYear() === now.getFullYear();
+    } else if (timePreset === 'specific_month') {
+      return tDate.getFullYear() === selectedYear && tDate.getMonth() === selectedMonth;
     } else if (timePreset === 'custom' && customStart && customEnd) {
       return dateStr >= customStart && dateStr <= customEnd;
     }
@@ -152,6 +157,7 @@ export const TransactionsTab: React.FC = () => {
             <option value="this_month">ខែនេះ</option>
             <option value="last_month">ខែមុន</option>
             <option value="this_year">ឆ្នាំនេះ</option>
+            <option value="specific_month">ជ្រើសរើសខែ</option>
             <option value="all">ទាំងអស់</option>
             <option value="custom">កំណត់ថ្ងៃ</option>
           </select>
@@ -243,6 +249,32 @@ export const TransactionsTab: React.FC = () => {
             <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </button>
         </div>
+
+        {/* Specific Month & Year Selectors */}
+        {timePreset === 'specific_month' && (
+          <div className="flex items-center space-x-2 pt-2 border-t border-slate-100 dark:border-slate-800 animate-slide-up">
+            <span className="text-xs text-slate-500 font-semibold">ជ្រើសរើសខែ៖</span>
+            <select
+              value={selectedMonth}
+              onChange={e => setSelectedMonth(Number(e.target.value))}
+              className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs dark:text-white outline-none font-bold cursor-pointer"
+            >
+              {KHMER_MONTHS.map(m => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+            <span className="text-xs text-slate-500 font-semibold">ឆ្នាំ៖</span>
+            <select
+              value={selectedYear}
+              onChange={e => setSelectedYear(Number(e.target.value))}
+              className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs dark:text-white outline-none font-bold cursor-pointer"
+            >
+              {availableYears.map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Custom Date Inputs if custom selected */}
         {timePreset === 'custom' && (

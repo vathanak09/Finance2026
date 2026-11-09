@@ -4,16 +4,20 @@ import { Search, ChevronDown, X } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { CategoryBadge } from '../../utils/categoryIcons';
-import { parseLocalDate } from '../../utils/dateUtils';
+import { parseLocalDate, KHMER_MONTHS, getAvailableYears } from '../../utils/dateUtils';
+import type { TimePreset } from '../../types/finance';
 import { GoogleSheetSync } from './GoogleSheetSync';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export const ReportsTab: React.FC = () => {
   const { transactions, categories, exchangeRate, setViewingTransaction, currencyMode, setCurrencyMode } = useFinance();
-  const [dateRangePreset, setDateRangePreset] = useState<'today' | 'this_month' | 'last_month' | 'this_year' | 'all' | 'custom'>('this_month');
+  const [dateRangePreset, setDateRangePreset] = useState<TimePreset>('this_month');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const availableYears = useMemo(() => getAvailableYears(transactions), [transactions]);
 
   const formatDateDayMonth = (dateStr: string) => {
     try {
@@ -65,6 +69,9 @@ export const ReportsTab: React.FC = () => {
     } else if (dateRangePreset === 'this_year') {
       start = new Date(now.getFullYear(), 0, 1);
       end = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+    } else if (dateRangePreset === 'specific_month') {
+      start = new Date(selectedYear, selectedMonth, 1);
+      end = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
     } else if (dateRangePreset === 'custom' && startDate && endDate) {
       start = parseLocalDate(startDate);
       end = parseLocalDate(endDate);
@@ -96,7 +103,7 @@ export const ReportsTab: React.FC = () => {
       const timeB = b.createdAt || (b.time ? new Date(`${b.date}T${b.time}:00`).getTime() : new Date(b.date).getTime());
       return sortOrder === 'newest' ? timeB - timeA : timeA - timeB;
     });
-  }, [transactions, dateRangePreset, startDate, endDate, flowTypeFilter, selectedCategories, searchTerm, sortOrder, categories, currencyMode]);
+  }, [transactions, dateRangePreset, startDate, endDate, selectedMonth, selectedYear, flowTypeFilter, selectedCategories, searchTerm, sortOrder, categories, currencyMode]);
 
   // Totals calculation
   let totalIncUSD = 0, totalExpUSD = 0, totalIncKHR = 0, totalExpKHR = 0;
@@ -197,6 +204,7 @@ export const ReportsTab: React.FC = () => {
             <option value="this_month">ខែនេះ</option>
             <option value="last_month">ខែមុន</option>
             <option value="this_year">ឆ្នាំនេះ</option>
+            <option value="specific_month">ជ្រើសរើសខែ</option>
             <option value="all">ទាំងអស់</option>
             <option value="custom">កំណត់ថ្ងៃ</option>
           </select>
@@ -283,6 +291,32 @@ export const ReportsTab: React.FC = () => {
             <GoogleSheetSync filteredTxs={filteredTxs} categories={categories} />
           </div>
         </div>
+
+        {/* Specific Month & Year Selectors */}
+        {dateRangePreset === 'specific_month' && (
+          <div className="flex items-center space-x-2 pt-2 border-t border-slate-100 dark:border-slate-800 animate-slide-up">
+            <span className="text-xs text-slate-500 font-semibold">ជ្រើសរើសខែ៖</span>
+            <select
+              value={selectedMonth}
+              onChange={e => setSelectedMonth(Number(e.target.value))}
+              className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs dark:text-white outline-none font-bold cursor-pointer"
+            >
+              {KHMER_MONTHS.map(m => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+            <span className="text-xs text-slate-500 font-semibold">ឆ្នាំ៖</span>
+            <select
+              value={selectedYear}
+              onChange={e => setSelectedYear(Number(e.target.value))}
+              className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs dark:text-white outline-none font-bold cursor-pointer"
+            >
+              {availableYears.map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {dateRangePreset === 'custom' && (
           <div className="flex items-center space-x-2 pt-2 border-t border-slate-100 dark:border-slate-800">
