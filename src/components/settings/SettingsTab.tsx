@@ -10,7 +10,8 @@ export const SettingsTab: React.FC = () => {
   const { 
     transactions, categories, budgets, 
     deleteCategory, exchangeRate, setExchangeRate, 
-    isDarkMode, setIsDarkMode, currencyMode, restoreBackup 
+    isDarkMode, setIsDarkMode, currencyMode, restoreBackup,
+    googleSheetSettings
   } = useFinance();
   
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -37,7 +38,8 @@ export const SettingsTab: React.FC = () => {
       settings: {
         exchangeRate,
         isDarkMode,
-        currencyMode
+        currencyMode,
+        googleSheetSettings
       }
     };
     

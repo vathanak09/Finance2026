@@ -33,6 +33,8 @@ interface FinanceContextType {
   deleteCategory: (id: string) => Promise<void>;
   getDayOnly: (dateStr: string) => string;
   restoreBackup: (backupData: any) => Promise<boolean>;
+  googleSheetSettings: { webAppUrl: string; sheetViewLink: string };
+  saveGoogleSheetSettings: (webAppUrl: string, sheetViewLink: string) => Promise<void>;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -68,6 +70,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [viewingTransaction, setViewingTransaction] = useState<Transaction | null>(null);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
+  const [googleSheetSettings, setGoogleSheetSettings] = useState<{ webAppUrl: string; sheetViewLink: string }>(() => ({
+    webAppUrl: localStorage.getItem('g_apps_script_url') || '',
+    sheetViewLink: localStorage.getItem('g_sheet_view_link') || ''
+  }));
 
   useEffect(() => {
     localStorage.setItem('finance_isDarkMode', JSON.stringify(isDarkMode));
@@ -157,10 +163,32 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setBudgets(docs);
     });
 
+    const unsubSettings = onSnapshot(doc(db, 'settings', 'google_sheet_sync'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const webAppUrl = data.webAppUrl || '';
+        const sheetViewLink = data.sheetViewLink || '';
+        setGoogleSheetSettings({ webAppUrl, sheetViewLink });
+        localStorage.setItem('g_apps_script_url', webAppUrl);
+        localStorage.setItem('g_sheet_view_link', sheetViewLink);
+      } else {
+        const localUrl = localStorage.getItem('g_apps_script_url') || '';
+        const localView = localStorage.getItem('g_sheet_view_link') || '';
+        if (localUrl || localView) {
+          setDoc(doc(db, 'settings', 'google_sheet_sync'), {
+            webAppUrl: localUrl,
+            sheetViewLink: localView,
+            updatedAt: Date.now()
+          }).catch(err => console.error('Failed to migrate Google Sheet settings:', err));
+        }
+      }
+    });
+
     return () => {
       unsubTx();
       unsubCat();
       unsubBg();
+      unsubSettings();
     };
   }, []);
 
@@ -198,6 +226,19 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const deleteCategory = async (id: string) => {
     await deleteDoc(doc(db, 'categories', id));
+  };
+
+  const saveGoogleSheetSettings = async (webAppUrl: string, sheetViewLink: string) => {
+    const cleanUrl = webAppUrl.trim();
+    const cleanViewLink = sheetViewLink.trim();
+    setGoogleSheetSettings({ webAppUrl: cleanUrl, sheetViewLink: cleanViewLink });
+    localStorage.setItem('g_apps_script_url', cleanUrl);
+    localStorage.setItem('g_sheet_view_link', cleanViewLink);
+    await setDoc(doc(db, 'settings', 'google_sheet_sync'), {
+      webAppUrl: cleanUrl,
+      sheetViewLink: cleanViewLink,
+      updatedAt: Date.now()
+    });
   };
 
   const getDayOnly = (dateStr: string): string => {
@@ -241,6 +282,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (backupData.settings.exchangeRate) setExchangeRate(backupData.settings.exchangeRate);
         if (backupData.settings.isDarkMode !== undefined) setIsDarkMode(backupData.settings.isDarkMode);
         if (backupData.settings.currencyMode) setCurrencyMode(backupData.settings.currencyMode);
+        if (backupData.settings.googleSheetSettings) {
+          await saveGoogleSheetSettings(
+            backupData.settings.googleSheetSettings.webAppUrl || '',
+            backupData.settings.googleSheetSettings.sheetViewLink || ''
+          );
+        }
       }
       
       return true;
@@ -279,7 +326,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       updateCategory,
       deleteCategory,
       getDayOnly,
-      restoreBackup
+      restoreBackup,
+      googleSheetSettings,
+      saveGoogleSheetSettings
     }}>
       {children}
     </FinanceContext.Provider>

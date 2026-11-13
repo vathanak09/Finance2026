@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RefreshCw, Settings, ExternalLink, Copy, Check, FileSpreadsheet, X, HelpCircle } from 'lucide-react';
 import type { Transaction, Category } from '../../types/finance';
+import { useFinance } from '../../context/FinanceContext';
 
 interface GoogleSheetSyncProps {
   filteredTxs: Transaction[];
@@ -8,12 +9,25 @@ interface GoogleSheetSyncProps {
 }
 
 export const GoogleSheetSync: React.FC<GoogleSheetSyncProps> = ({ filteredTxs, categories }) => {
-  const [webAppUrl, setWebAppUrl] = useState(localStorage.getItem('g_apps_script_url') || '');
-  const [sheetViewLink, setSheetViewLink] = useState(localStorage.getItem('g_sheet_view_link') || '');
+  const { googleSheetSettings, saveGoogleSheetSettings } = useFinance();
+  const [webAppUrl, setWebAppUrl] = useState(googleSheetSettings.webAppUrl);
+  const [sheetViewLink, setSheetViewLink] = useState(googleSheetSettings.sheetViewLink);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [syncStatus, setSyncStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  useEffect(() => {
+    setWebAppUrl(googleSheetSettings.webAppUrl);
+    setSheetViewLink(googleSheetSettings.sheetViewLink);
+  }, [googleSheetSettings]);
+
+  const openSettings = () => {
+    setWebAppUrl(googleSheetSettings.webAppUrl);
+    setSheetViewLink(googleSheetSettings.sheetViewLink);
+    setIsSettingsOpen(true);
+  };
 
   const appsScriptCode = `function doPost(e) {
   try {
@@ -55,18 +69,25 @@ function doGet(e) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const saveSettings = () => {
-    localStorage.setItem('g_apps_script_url', webAppUrl.trim());
-    localStorage.setItem('g_sheet_view_link', sheetViewLink.trim());
-    setIsSettingsOpen(false);
-    setSyncStatus({ type: 'success', message: 'បានរក្សាទុកការកំណត់ជោគជ័យ!' });
-    setTimeout(() => setSyncStatus(null), 3000);
+  const saveSettings = async () => {
+    setIsSaving(true);
+    try {
+      await saveGoogleSheetSettings(webAppUrl, sheetViewLink);
+      setIsSettingsOpen(false);
+      setSyncStatus({ type: 'success', message: 'បានរក្សាទុកការកំណត់ទៅក្នុង Database ជោគជ័យ!' });
+      setTimeout(() => setSyncStatus(null), 3000);
+    } catch (error: any) {
+      console.error('Error saving Google Sheet settings:', error);
+      alert(`មានបញ្ហាក្នុងការរក្សាទុកទៅ Database: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSync = async () => {
-    const savedUrl = localStorage.getItem('g_apps_script_url');
+    const savedUrl = googleSheetSettings.webAppUrl.trim();
     if (!savedUrl) {
-      setIsSettingsOpen(true);
+      openSettings();
       return;
     }
 
@@ -140,9 +161,9 @@ function doGet(e) {
         </button>
 
         {/* View Sheet Link (if provided) */}
-        {sheetViewLink && (
+        {googleSheetSettings.sheetViewLink && (
           <a
-            href={sheetViewLink}
+            href={googleSheetSettings.sheetViewLink}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center space-x-1 px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-bold transition-colors"
@@ -157,7 +178,7 @@ function doGet(e) {
         {/* Settings Button */}
         <button
           type="button"
-          onClick={() => setIsSettingsOpen(true)}
+          onClick={openSettings}
           className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl transition-colors"
           title="ការកំណត់ Google Sheet (Settings)"
         >
@@ -283,9 +304,10 @@ function doGet(e) {
               <button
                 type="button"
                 onClick={saveSettings}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                disabled={isSaving}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                រក្សាទុក
+                {isSaving ? 'កំពុងរក្សាទុក...' : 'រក្សាទុក'}
               </button>
             </div>
           </div>
