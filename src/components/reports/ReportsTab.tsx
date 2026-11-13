@@ -5,8 +5,9 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { CategoryBadge } from '../../utils/categoryIcons';
 import { parseLocalDate, KHMER_MONTHS, getAvailableYears } from '../../utils/dateUtils';
-import type { TimePreset } from '../../types/finance';
+import type { TimePreset, CurrencyMode } from '../../types/finance';
 import { GoogleSheetSync } from './GoogleSheetSync';
+import { CustomSelect } from '../common/CustomSelect';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -195,30 +196,32 @@ export const ReportsTab: React.FC = () => {
           </div>
 
           {/* Time Filter Preset */}
-          <select
+          <CustomSelect<TimePreset>
             value={dateRangePreset}
-            onChange={(e) => setDateRangePreset(e.target.value as any)}
-            className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex-shrink-0"
-          >
-            <option value="today">ថ្ងៃនេះ</option>
-            <option value="this_month">ខែនេះ</option>
-            <option value="last_month">ខែមុន</option>
-            <option value="this_year">ឆ្នាំនេះ</option>
-            <option value="specific_month">ជ្រើសរើសខែ</option>
-            <option value="all">ទាំងអស់</option>
-            <option value="custom">កំណត់ថ្ងៃ</option>
-          </select>
+            onChange={setDateRangePreset}
+            options={[
+              { value: 'today', label: 'ថ្ងៃនេះ' },
+              { value: 'this_month', label: 'ខែនេះ' },
+              { value: 'last_month', label: 'ខែមុន' },
+              { value: 'this_year', label: 'ឆ្នាំនេះ' },
+              { value: 'specific_month', label: 'ជ្រើសរើសខែ' },
+              { value: 'all', label: 'ទាំងអស់' },
+              { value: 'custom', label: 'កំណត់ថ្ងៃ' },
+            ]}
+            className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0"
+          />
 
           {/* Type Selector */}
-          <select
+          <CustomSelect<'all' | 'income' | 'expense'>
             value={flowTypeFilter}
-            onChange={(e) => setFlowTypeFilter(e.target.value as any)}
-            className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex-shrink-0"
-          >
-            <option value="all">ទាំងអស់</option>
-            <option value="income">ចំណូល</option>
-            <option value="expense">ចំណាយ</option>
-          </select>
+            onChange={setFlowTypeFilter}
+            options={[
+              { value: 'all', label: 'ទាំងអស់' },
+              { value: 'income', label: 'ចំណូល' },
+              { value: 'expense', label: 'ចំណាយ' },
+            ]}
+            className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0"
+          />
 
           {/* Multi-Select Category Dropdown */}
           <div className="relative z-40 flex-shrink-0">
@@ -277,14 +280,16 @@ export const ReportsTab: React.FC = () => {
           </div>
 
           {/* Sort Order Selector */}
-          <select
+          <CustomSelect<'newest' | 'oldest'>
             value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as any)}
-            className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 outline-none cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex-shrink-0"
-          >
-            <option value="newest">ថ្មីមុន</option>
-            <option value="oldest">ចាស់មុន</option>
-          </select>
+            onChange={setSortOrder}
+            accentColor="emerald"
+            options={[
+              { value: 'newest', label: 'ថ្មីមុន' },
+              { value: 'oldest', label: 'ចាស់មុន' },
+            ]}
+            className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0"
+          />
 
           {/* Google Sheet Sync */}
           <div className="sm:ml-auto flex items-center">
@@ -296,25 +301,19 @@ export const ReportsTab: React.FC = () => {
         {dateRangePreset === 'specific_month' && (
           <div className="flex items-center space-x-2 pt-2 border-t border-slate-100 dark:border-slate-800 animate-slide-up">
             <span className="text-xs text-slate-500 font-semibold">ជ្រើសរើសខែ៖</span>
-            <select
+            <CustomSelect<number>
               value={selectedMonth}
-              onChange={e => setSelectedMonth(Number(e.target.value))}
-              className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs dark:text-white outline-none font-bold cursor-pointer"
-            >
-              {KHMER_MONTHS.map(m => (
-                <option key={m.value} value={m.value}>{m.label}</option>
-              ))}
-            </select>
+              onChange={setSelectedMonth}
+              options={KHMER_MONTHS}
+              className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs dark:text-white font-bold hover:bg-slate-100 dark:hover:bg-slate-800"
+            />
             <span className="text-xs text-slate-500 font-semibold">ឆ្នាំ៖</span>
-            <select
+            <CustomSelect<number>
               value={selectedYear}
-              onChange={e => setSelectedYear(Number(e.target.value))}
-              className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs dark:text-white outline-none font-bold cursor-pointer"
-            >
-              {availableYears.map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+              onChange={setSelectedYear}
+              options={availableYears.map((y) => ({ value: y, label: String(y) }))}
+              className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs dark:text-white font-bold hover:bg-slate-100 dark:hover:bg-slate-800"
+            />
           </div>
         )}
 
@@ -343,16 +342,18 @@ export const ReportsTab: React.FC = () => {
           {/* Left: Currency selector */}
           <div className="flex items-center space-x-2 bg-slate-50/90 dark:bg-slate-900/90 p-2 px-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
             <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300">ទិន្នន័យ៖</span>
-            <select
+            <CustomSelect<CurrencyMode>
               value={currencyMode}
-              onChange={(e) => setCurrencyMode(e.target.value as any)}
-              className="bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl px-3 py-1.5 text-xs font-black text-emerald-700 dark:text-emerald-400 outline-none cursor-pointer hover:bg-emerald-100/60 transition-colors"
-            >
-              <option value="MERGED_KHR">បញ្ចូលគ្នារក KHR (៛)</option>
-              <option value="MERGED_USD">បញ្ចូលគ្នារក USD ($)</option>
-              <option value="USD_ONLY">USD តែប៉ុណ្ណោះ</option>
-              <option value="KHR_ONLY">KHR តែប៉ុណ្ណោះ</option>
-            </select>
+              onChange={setCurrencyMode}
+              accentColor="emerald"
+              options={[
+                { value: 'MERGED_KHR', label: 'បញ្ចូលគ្នារក KHR (៛)' },
+                { value: 'MERGED_USD', label: 'បញ្ចូលគ្នារក USD ($)' },
+                { value: 'USD_ONLY', label: 'USD តែប៉ុណ្ណោះ' },
+                { value: 'KHR_ONLY', label: 'KHR តែប៉ុណ្ណោះ' },
+              ]}
+              className="bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl px-3 py-1.5 text-xs font-black text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100/60"
+            />
           </div>
 
           {/* Right: Summary cards */}

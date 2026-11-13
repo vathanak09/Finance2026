@@ -5,6 +5,7 @@ import type { Currency, TransactionType } from '../../types/finance';
 import { X, Calendar, Clock, ChevronDown, Check } from 'lucide-react';
 import { CustomCalendarPicker } from '../common/CustomCalendarPicker';
 import { CustomClockTimePicker } from '../common/CustomClockTimePicker';
+import { CustomSelect } from '../common/CustomSelect';
 import { getLocalDateString, getLocalTimeString, formatDateDisplay, formatTime12, parseLocalDate } from '../../utils/dateUtils';
 import { CategoryBadge } from '../../utils/categoryIcons';
 
@@ -224,14 +225,17 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">រូបិយប័ណ្ណ</label>
-              <select
+              <CustomSelect<Currency>
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value as Currency)}
-                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm font-bold text-blue-600 dark:text-blue-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer"
-              >
-                <option value="USD">USD</option>
-                <option value="KHR">KHR</option>
-              </select>
+                onChange={setCurrency}
+                align="right"
+                size="md"
+                options={[
+                  { value: 'USD', label: 'USD' },
+                  { value: 'KHR', label: 'KHR' },
+                ]}
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm font-bold text-blue-600 dark:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-900/80"
+              />
             </div>
           </div>
 

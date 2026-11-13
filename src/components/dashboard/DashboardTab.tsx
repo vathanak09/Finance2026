@@ -6,6 +6,7 @@ import { Doughnut, PolarArea, Bar, Line, Pie, Radar } from 'react-chartjs-2';
 import type { TimePreset } from '../../types/finance';
 import { CategoryBadge } from '../../utils/categoryIcons';
 import { getLocalDateString, parseLocalDate, formatDateDisplay, formatTime12, KHMER_MONTHS, getAvailableYears } from '../../utils/dateUtils';
+import { CustomSelect } from '../common/CustomSelect';
 
 ChartJS.register(ArcElement, Tooltip, Legend, RadialLinearScale, PointElement, LineElement, Filler, CategoryScale, LinearScale, BarElement);
 
@@ -227,40 +228,38 @@ export const DashboardTab: React.FC = () => {
             <span className="text-sm font-bold text-slate-700 dark:text-slate-300">កាលបរិច្ឆេទ៖</span>
           </div>
           
-          <select 
+          <CustomSelect<TimePreset>
             value={timePreset}
-            onChange={(e) => setTimePreset(e.target.value as TimePreset)}
-            className="bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold text-blue-600 dark:text-blue-400 outline-none hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-          >
-            <option value="today">ថ្ងៃនេះ (Today)</option>
-            <option value="last_month">ខែមុន (Last Month)</option>
-            <option value="this_month">ខែនេះ (This Month)</option>
-            <option value="this_year">ឆ្នាំនេះ (This Year)</option>
-            <option value="specific_month">ជ្រើសរើសខែ (Select Month)</option>
-            <option value="all">ទាំងអស់ (All Time)</option>
-            <option value="custom">កំណត់ថ្ងៃ (Custom Range)</option>
-          </select>
+            onChange={setTimePreset}
+            size="sm"
+            options={[
+              { value: 'today', label: 'ថ្ងៃនេះ (Today)' },
+              { value: 'last_month', label: 'ខែមុន (Last Month)' },
+              { value: 'this_month', label: 'ខែនេះ (This Month)' },
+              { value: 'this_year', label: 'ឆ្នាំនេះ (This Year)' },
+              { value: 'specific_month', label: 'ជ្រើសរើសខែ (Select Month)' },
+              { value: 'all', label: 'ទាំងអស់ (All Time)' },
+              { value: 'custom', label: 'កំណត់ថ្ងៃ (Custom Range)' },
+            ]}
+            className="bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold text-blue-600 dark:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+          />
 
           {timePreset === 'specific_month' && (
             <div className="flex items-center space-x-2 animate-slide-up">
-              <select
+              <CustomSelect<number>
                 value={selectedMonth}
-                onChange={e => setSelectedMonth(Number(e.target.value))}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm dark:text-white outline-none font-bold cursor-pointer"
-              >
-                {KHMER_MONTHS.map(m => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
-              <select
+                onChange={setSelectedMonth}
+                size="sm"
+                options={KHMER_MONTHS}
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm dark:text-white font-bold hover:bg-slate-50 dark:hover:bg-slate-700/80"
+              />
+              <CustomSelect<number>
                 value={selectedYear}
-                onChange={e => setSelectedYear(Number(e.target.value))}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm dark:text-white outline-none font-bold cursor-pointer"
-              >
-                {availableYears.map(y => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
+                onChange={setSelectedYear}
+                size="sm"
+                options={availableYears.map((y) => ({ value: y, label: String(y) }))}
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm dark:text-white font-bold hover:bg-slate-50 dark:hover:bg-slate-700/80"
+              />
             </div>
           )}
 

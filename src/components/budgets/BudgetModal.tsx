@@ -4,6 +4,7 @@ import { useFinance } from '../../context/FinanceContext';
 import type { Currency } from '../../types/finance';
 import { X, Calendar, ChevronDown } from 'lucide-react';
 import { CustomCalendarPicker } from '../common/CustomCalendarPicker';
+import { CustomSelect } from '../common/CustomSelect';
 import { getLocalDateString, formatDateDisplay } from '../../utils/dateUtils';
 
 interface BudgetModalProps {
@@ -259,14 +260,18 @@ export const BudgetModal: React.FC<BudgetModalProps> = ({ isOpen, onClose }) => 
               <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                 រូបិយប័ណ្ណ
               </label>
-              <select
+              <CustomSelect<Currency>
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value as Currency)}
-                className="w-full px-3.5 py-3 rounded-2xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400 outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all cursor-pointer"
-              >
-                <option value="KHR">KHR (៛)</option>
-                <option value="USD">USD ($)</option>
-              </select>
+                onChange={setCurrency}
+                align="right"
+                size="sm"
+                accentColor="emerald"
+                options={[
+                  { value: 'KHR', label: 'KHR (៛)' },
+                  { value: 'USD', label: 'USD ($)' },
+                ]}
+                className="w-full px-3.5 py-3 rounded-2xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-900/80"
+              />
             </div>
           </div>
 
