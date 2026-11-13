@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useFinance } from '../../context/FinanceContext';
 import type { Currency, TransactionType } from '../../types/finance';
 import { X, Calendar, Clock, ChevronDown, Check } from 'lucide-react';
 import { CustomCalendarPicker } from '../common/CustomCalendarPicker';
 import { CustomClockTimePicker } from '../common/CustomClockTimePicker';
-import { getLocalDateString, getLocalTimeString, formatDateDisplay, formatTime12 } from '../../utils/dateUtils';
+import { getLocalDateString, getLocalTimeString, formatDateDisplay, formatTime12, parseLocalDate } from '../../utils/dateUtils';
+import { CategoryBadge } from '../../utils/categoryIcons';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -13,7 +14,7 @@ interface TransactionModalProps {
 }
 
 export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose }) => {
-  const { categories, addTransaction, updateTransaction, editingTransaction, setEditingTransaction } = useFinance();
+  const { categories, transactions, addTransaction, updateTransaction, editingTransaction, setEditingTransaction } = useFinance();
   const [type, setType] = useState<TransactionType>('expense');
   const [amount, setAmount] = useState<string>('');
   const [currency, setCurrency] = useState<Currency>('KHR');
@@ -24,6 +25,20 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
   
   // Active picker mode: null, 'date', or 'time'
   const [activePicker, setActivePicker] = useState<'date' | 'time' | null>(null);
+  const [isCatDropdownOpen, setIsCatDropdownOpen] = useState(false);
+  const catDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (catDropdownRef.current && !catDropdownRef.current.contains(e.target as Node)) {
+        setIsCatDropdownOpen(false);
+      }
+    };
+    if (isCatDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isCatDropdownOpen]);
 
   useEffect(() => {
     if (editingTransaction) {
@@ -36,14 +51,62 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
       setTime(editingTransaction.time || '12:00');
       setDescription(editingTransaction.description || '');
       setActivePicker(null);
-    } else {
+      setIsCatDropdownOpen(false);
+    } else if (isOpen) {
       setAmount('');
       setDescription('');
+      setCategoryId('');
       setDate(getLocalDateString());
       setTime(getLocalTimeString());
       setActivePicker(null);
+      setIsCatDropdownOpen(false);
     }
   }, [editingTransaction, isOpen]);
+
+  // Sort categories by most frequently used recently down to least used
+  const availableCategories = useMemo(() => {
+    const now = Date.now();
+    const HALF_LIFE_DAYS = 30;
+    const MS_PER_DAY = 1000 * 60 * 60 * 24;
+    const stats = new Map<string, { score: number; count: number; latestTime: number }>();
+
+    transactions.forEach((t) => {
+      if (t.type !== type) return;
+      const txTime = t.createdAt || parseLocalDate(t.date).getTime() || 0;
+      const daysAgo = Math.max(0, (now - txTime) / MS_PER_DAY);
+      const weight = Math.pow(0.5, daysAgo / HALF_LIFE_DAYS);
+
+      const prev = stats.get(t.categoryId) || { score: 0, count: 0, latestTime: 0 };
+      stats.set(t.categoryId, {
+        score: prev.score + weight,
+        count: prev.count + 1,
+        latestTime: Math.max(prev.latestTime, txTime),
+      });
+    });
+
+    return categories
+      .filter((c) => c.type === type)
+      .sort((a, b) => {
+        const statA = stats.get(a.id) || { score: 0, count: 0, latestTime: 0 };
+        const statB = stats.get(b.id) || { score: 0, count: 0, latestTime: 0 };
+
+        if (Math.abs(statB.score - statA.score) > 1e-6) {
+          return statB.score - statA.score;
+        }
+        if (statB.count !== statA.count) {
+          return statB.count - statA.count;
+        }
+        if (statB.latestTime !== statA.latestTime) {
+          return statB.latestTime - statA.latestTime;
+        }
+        return 0;
+      });
+  }, [categories, transactions, type]);
+
+  const selectedCategory = useMemo(
+    () => availableCategories.find((c) => c.id === categoryId) || categories.find((c) => c.id === categoryId),
+    [availableCategories, categories, categoryId]
+  );
 
   const activeOpen = isOpen || Boolean(editingTransaction);
   if (!activeOpen) return null;
@@ -51,14 +114,26 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
   const handleClose = () => {
     if (editingTransaction) setEditingTransaction(null);
     setActivePicker(null);
+    setIsCatDropdownOpen(false);
     onClose();
+  };
+
+  const handleTypeChange = (newType: TransactionType) => {
+    setType(newType);
+    setIsCatDropdownOpen(false);
+    if (categoryId) {
+      const currentCat = categories.find((c) => c.id === categoryId);
+      if (currentCat && currentCat.type !== newType) {
+        setCategoryId('');
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || parseFloat(amount) <= 0) return alert('សូមបញ្ចូលចំនួនទឹកប្រាក់ឲ្យបានត្រឹមត្រូវ!');
     
-    const cat = categoryId || (categories.find(c => c.type === type)?.id || categories[0].id);
+    const cat = categoryId || (availableCategories[0]?.id || categories[0].id);
     const selectedTime = time.trim() || '12:00';
 
     // Compute timestamp accurately for sorting
@@ -85,11 +160,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
 
     setAmount('');
     setDescription('');
+    setCategoryId('');
     setActivePicker(null);
+    setIsCatDropdownOpen(false);
     onClose();
   };
-
-  const availableCategories = categories.filter(c => c.type === type);
 
   return createPortal(
     <div 
@@ -115,7 +190,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
           <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800">
             <button
               type="button"
-              onClick={() => setType('expense')}
+              onClick={() => handleTypeChange('expense')}
               className={`py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
                 type === 'expense' ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-sm border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
@@ -124,7 +199,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
             </button>
             <button
               type="button"
-              onClick={() => setType('income')}
+              onClick={() => handleTypeChange('income')}
               className={`py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
                 type === 'income' ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
@@ -160,19 +235,74 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
             </div>
           </div>
 
-          {/* Category */}
-          <div>
+          {/* Category (Custom App Dropdown UI, sorted by recent usage frequency) */}
+          <div className="relative" ref={catDropdownRef}>
             <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">ប្រភេទចំណាត់ថ្នាក់</label>
-            <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer"
+            <button
+              type="button"
+              onClick={() => {
+                setActivePicker(null);
+                setIsCatDropdownOpen((prev) => !prev);
+              }}
+              className={`w-full px-3.5 py-2.5 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
+                isCatDropdownOpen
+                  ? 'bg-white dark:bg-slate-900 border-blue-500 ring-2 ring-blue-500/20 shadow-sm'
+                  : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900/80'
+              }`}
             >
-              <option value="">ជ្រើសរើសប្រភេទ...</option>
-              {availableCategories.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+              <div className="flex items-center space-x-2.5 min-w-0">
+                {selectedCategory ? (
+                  <>
+                    <CategoryBadge color={selectedCategory.color} icon={selectedCategory.icon} size="xs" />
+                    <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                      {selectedCategory.name}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-sm font-medium text-slate-400">
+                    ជ្រើសរើសប្រភេទ...
+                  </span>
+                )}
+              </div>
+              <ChevronDown className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ${isCatDropdownOpen ? 'rotate-180 text-blue-500' : ''}`} />
+            </button>
+
+            {isCatDropdownOpen && (
+              <div className="absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-50 p-1.5 max-h-52 overflow-y-auto space-y-1 animate-in fade-in zoom-in-95 duration-150">
+                {availableCategories.length === 0 ? (
+                  <div className="py-4 text-center text-xs text-slate-400">
+                    មិនមានប្រភេទចំណាត់ថ្នាក់ទេ
+                  </div>
+                ) : (
+                  availableCategories.map((c) => {
+                    const isSelected = categoryId === c.id;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setCategoryId(c.id);
+                          setIsCatDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300'
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/70 text-slate-700 dark:text-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2.5 min-w-0">
+                          <CategoryBadge color={c.color} icon={c.icon} size="sm" />
+                          <span className="text-sm font-semibold truncate">{c.name}</span>
+                        </div>
+                        {isSelected && (
+                          <Check className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 ml-2" />
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            )}
           </div>
 
           {/* Date and Time Selector Bar */}
@@ -184,7 +314,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
               {/* Date Button */}
               <button
                 type="button"
-                onClick={() => setActivePicker(activePicker === 'date' ? null : 'date')}
+                onClick={() => {
+                  setIsCatDropdownOpen(false);
+                  setActivePicker(activePicker === 'date' ? null : 'date');
+                }}
                 className={`p-2.5 rounded-2xl border flex items-center justify-between transition-all cursor-pointer ${
                   activePicker === 'date'
                     ? 'bg-sky-50 dark:bg-sky-950/40 border-[#00a2e8] text-[#00a2e8] shadow-sm'
@@ -206,7 +339,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
               {/* Time Button */}
               <button
                 type="button"
-                onClick={() => setActivePicker(activePicker === 'time' ? null : 'time')}
+                onClick={() => {
+                  setIsCatDropdownOpen(false);
+                  setActivePicker(activePicker === 'time' ? null : 'time');
+                }}
                 className={`p-2.5 rounded-2xl border flex items-center justify-between transition-all cursor-pointer ${
                   activePicker === 'time'
                     ? 'bg-indigo-50 dark:bg-indigo-950/40 border-[#5b45a0] dark:border-indigo-500 text-[#5b45a0] dark:text-indigo-400 shadow-sm'
