@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { Search, Trash2, Edit2, ChevronDown, Download } from 'lucide-react';
+import { Search, Trash2, Edit2, ChevronDown, Download, User } from 'lucide-react';
 import type { CurrencyMode, TimePreset } from '../../types/finance';
 import * as XLSX from 'xlsx';
 import { CategoryBadge } from '../../utils/categoryIcons';
@@ -8,9 +8,10 @@ import { getLocalDateString, parseLocalDate, KHMER_MONTHS, getAvailableYears } f
 import { CustomSelect } from '../common/CustomSelect';
 
 export const TransactionsTab: React.FC = () => {
-  const { transactions, categories, deleteTransaction, exchangeRate, currencyMode, setCurrencyMode, setEditingTransaction, setViewingTransaction } = useFinance();
+  const { transactions, categories, accounts, deleteTransaction, exchangeRate, currencyMode, setCurrencyMode, setEditingTransaction, setViewingTransaction } = useFinance();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | 'income' | 'expense'>('all');
+  const [selectedCreator, setSelectedCreator] = useState<string>('all');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isCatDropdownOpen, setIsCatDropdownOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
@@ -22,6 +23,27 @@ export const TransactionsTab: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const availableYears = useMemo(() => getAvailableYears(transactions), [transactions]);
+
+  const creatorOptions = useMemo(() => {
+    const opts: { value: string; label: string }[] = [{ value: 'all', label: 'គ្រប់អ្នកបញ្ចូល' }];
+    const seenIds = new Set<string>();
+    const seenNames = new Set<string>();
+
+    accounts.forEach((acc) => {
+      seenIds.add(acc.id);
+      seenNames.add(acc.displayName);
+      opts.push({ value: acc.id, label: acc.displayName });
+    });
+
+    transactions.forEach((t) => {
+      if (t.createdByName && !seenNames.has(t.createdByName) && (!t.createdById || !seenIds.has(t.createdById))) {
+        seenNames.add(t.createdByName);
+        opts.push({ value: `name:${t.createdByName}`, label: t.createdByName });
+      }
+    });
+
+    return opts;
+  }, [accounts, transactions]);
 
   const toggleCategory = (catId: string) => {
     setSelectedCategories(prev =>
@@ -60,6 +82,17 @@ export const TransactionsTab: React.FC = () => {
   const filtered = transactions.filter((t) => {
     if (!filterByDate(t.date)) return false;
     if (selectedType !== 'all' && t.type !== selectedType) return false;
+    if (selectedCreator !== 'all') {
+      if (selectedCreator.startsWith('name:')) {
+        const targetName = selectedCreator.slice(5);
+        if (t.createdByName !== targetName) return false;
+      } else {
+        const acc = accounts.find((a) => a.id === selectedCreator);
+        const matchesId = t.createdById === selectedCreator;
+        const matchesName = acc && t.createdByName === acc.displayName;
+        if (!matchesId && !matchesName) return false;
+      }
+    }
     if (selectedCategories.length > 0 && !selectedCategories.includes(t.categoryId)) return false;
     if (currencyMode === 'USD_ONLY' && t.currency !== 'USD') return false;
     if (currencyMode === 'KHR_ONLY' && t.currency !== 'KHR') return false;
@@ -68,8 +101,16 @@ export const TransactionsTab: React.FC = () => {
       const cat = categories.find(c => c.id === t.categoryId);
       const catName = cat ? cat.name.toLowerCase() : '';
       const desc = (t.description || '').toLowerCase();
+      const creator = (t.createdByName || '').toLowerCase();
+      const editor = (t.updatedByName || '').toLowerCase();
       const query = searchTerm.toLowerCase();
-      if (!catName.includes(query) && !desc.includes(query) && !t.amount.toString().includes(query)) {
+      if (
+        !catName.includes(query) &&
+        !desc.includes(query) &&
+        !creator.includes(query) &&
+        !editor.includes(query) &&
+        !t.amount.toString().includes(query)
+      ) {
         return false;
       }
     }
@@ -122,6 +163,8 @@ export const TransactionsTab: React.FC = () => {
         'ប្រភេទលំហូរ': t.type === 'income' ? 'ចំណូល' : 'ចំណាយ',
         'ចំនួនទឹកប្រាក់': t.amount,
         'រូបិយប័ណ្ណ': t.currency,
+        'អ្នកបញ្ចូល': t.createdByName || '-',
+        'កែសម្រួលដោយ': t.updatedByName || '-',
         'ការពិពណ៌នា': t.description || ''
       };
     });
@@ -175,6 +218,16 @@ export const TransactionsTab: React.FC = () => {
             ]}
             className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0"
           />
+
+          {/* Creator Filter Selector */}
+          {creatorOptions.length > 1 && (
+            <CustomSelect<string>
+              value={selectedCreator}
+              onChange={setSelectedCreator}
+              options={creatorOptions}
+              className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0"
+            />
+          )}
 
           {/* Multi-Select Category Dropdown */}
           <div className="relative z-40 flex-shrink-0">
@@ -351,13 +404,14 @@ export const TransactionsTab: React.FC = () => {
                 <th className="p-2 sm:p-3 px-2 sm:px-4">ចំនួនទឹកប្រាក់</th>
                 <th className="p-2 sm:p-3 px-2 sm:px-4">ប្រភេទ</th>
                 <th className="p-2 sm:p-3 px-2 sm:px-4">ការពិពណ៌នា</th>
+                <th className="hidden md:table-cell p-2 sm:p-3 px-2 sm:px-4">អ្នកបញ្ចូល</th>
                 <th className="p-2 sm:p-3 px-2 sm:px-4 text-center">សកម្មភាព</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {sorted.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400 font-medium text-xs">
+                  <td colSpan={6} className="py-12 text-center text-slate-400 font-medium text-xs">
                     មិនមានទិន្នន័យប្រតិបត្តិការឡើយ! (No transactions found)
                   </td>
                 </tr>
@@ -404,11 +458,29 @@ export const TransactionsTab: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Description Column: max 2 lines */}
+                      {/* Description Column: max 2 lines + creator badge on mobile */}
                       <td className="p-2 sm:p-3 px-2 sm:px-4 text-xs text-slate-600 dark:text-slate-300">
                         <p className="line-clamp-2 max-w-[220px] leading-tight">
                           {t.description || '-'}
                         </p>
+                        {t.createdByName && (
+                          <span className="md:hidden mt-1 inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                            <User className="w-2.5 h-2.5" />
+                            <span>{t.createdByName}</span>
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Creator Column (Desktop) */}
+                      <td className="hidden md:table-cell p-2 sm:p-3 px-2 sm:px-4 whitespace-nowrap">
+                        {t.createdByName ? (
+                          <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold">
+                            <User className="w-3 h-3 text-emerald-500" />
+                            <span>{t.createdByName}</span>
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-400">-</span>
+                        )}
                       </td>
 
                       {/* Actions Column: single line unwrap */}

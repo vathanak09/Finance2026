@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { LayoutDashboard, Receipt, BarChart3, LayoutGrid, Settings, Download } from 'lucide-react';
+import { LayoutDashboard, Receipt, BarChart3, LayoutGrid, Settings, Download, LogOut, ShieldCheck } from 'lucide-react';
 import type { TabType } from '../../types/finance';
 import { PWAInstallModal } from '../common/PWAInstallModal';
 
 export const Sidebar: React.FC = () => {
-  const { activeTab, setActiveTab } = useFinance();
+  const { activeTab, setActiveTab, currentUser, logout } = useFinance();
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+
+  const handleLogout = async () => {
+    if (confirm('តើអ្នកចង់ចាកចេញពីគណនីនេះមែនទេ?')) {
+      await logout();
+    }
+  };
 
   const navItems: { id: TabType; label: string; icon: React.ReactNode }[] = [
     { id: 'dashboard', label: 'ផ្ទាំងគ្រប់គ្រង', icon: <LayoutDashboard className="text-xl w-6" /> },
@@ -53,8 +59,43 @@ export const Sidebar: React.FC = () => {
           })}
         </nav>
 
-        {/* Install Shortcut App Button */}
-        <div className="p-3 relative z-10 border-t border-slate-200/60 dark:border-slate-800/60">
+        {/* Current Account & Install Shortcut App */}
+        <div className="p-3 relative z-10 border-t border-slate-200/60 dark:border-slate-800/60 space-y-2.5">
+          {currentUser && (
+            <div className="p-2.5 rounded-2xl bg-slate-100/90 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/60 flex items-center justify-between gap-2">
+              <div
+                onClick={() => setActiveTab('settings')}
+                className="flex items-center space-x-2.5 min-w-0 cursor-pointer flex-1"
+                title="ចូលទៅការកំណត់គណនី"
+              >
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white flex-shrink-0 shadow-sm ${
+                  currentUser.role === 'admin'
+                    ? 'bg-gradient-to-br from-emerald-500 to-teal-600'
+                    : 'bg-gradient-to-br from-blue-500 to-indigo-600'
+                }`}>
+                  {currentUser.displayName.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center space-x-1">
+                    <p className="text-xs font-extrabold text-slate-900 dark:text-white truncate">{currentUser.displayName}</p>
+                    {currentUser.role === 'admin' && <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />}
+                  </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                    @{currentUser.username} • {currentUser.role === 'admin' ? 'Admin' : 'សមាជិក'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="p-2 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-950/60 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 transition-colors cursor-pointer flex-shrink-0"
+                title="ចាកចេញ (Logout)"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           <button
             onClick={() => setIsInstallModalOpen(true)}
             className="w-full flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs font-bold transition-all border border-slate-200/60 dark:border-slate-700/60 cursor-pointer"

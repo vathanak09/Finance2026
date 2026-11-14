@@ -102,7 +102,7 @@ function doGet(e) {
     try {
       // Format rows: Header + Data
       const rows: (string | number)[][] = [
-        ['No', 'Date', 'Time', 'Type', 'Category', 'Amount', 'Currency', 'Description']
+        ['No', 'Date', 'Time', 'Type', 'Category', 'Amount', 'Currency', 'Created By', 'Description']
       ];
 
       filteredTxs.forEach((t, index) => {
@@ -115,6 +115,7 @@ function doGet(e) {
           cat ? cat.name : t.categoryId,
           t.amount,
           t.currency,
+          t.createdByName || '',
           t.description || ''
         ]);
       });

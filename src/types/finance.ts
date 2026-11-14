@@ -3,6 +3,48 @@ export type TransactionType = 'income' | 'expense';
 export type TabType = 'dashboard' | 'transactions' | 'reports' | 'budgets' | 'settings' | 'apps' | 'income_calculator';
 export type CurrencyMode = 'MERGED_USD' | 'MERGED_KHR' | 'USD_ONLY' | 'KHR_ONLY';
 export type TimePreset = 'today' | 'last_month' | 'this_month' | 'this_year' | 'specific_month' | 'all' | 'custom';
+export type AccountRole = 'admin' | 'member';
+
+export interface UserAccount {
+  id: string;
+  username: string;
+  displayName: string;
+  passwordHash: string;
+  role: AccountRole;
+  isActive?: boolean;
+  createdAt: number;
+  createdByName?: string;
+}
+
+export type ActivityAction =
+  | 'login'
+  | 'logout'
+  | 'tx_create'
+  | 'tx_update'
+  | 'tx_delete'
+  | 'account_create'
+  | 'account_update'
+  | 'account_delete'
+  | 'budget_create'
+  | 'budget_update'
+  | 'budget_delete'
+  | 'category_create'
+  | 'category_update'
+  | 'category_delete'
+  | 'settings_update'
+  | 'backup_restore';
+
+export interface ActivityLog {
+  id: string;
+  action: ActivityAction;
+  actorId: string;
+  actorName: string;
+  actorUsername?: string;
+  summary: string;
+  details?: string;
+  targetId?: string;
+  createdAt: number;
+}
 
 export interface Transaction {
   id: string;
@@ -14,6 +56,11 @@ export interface Transaction {
   time?: string; // HH:mm
   createdAt?: number; // timestamp in ms
   description?: string;
+  createdById?: string;
+  createdByName?: string;
+  updatedById?: string;
+  updatedByName?: string;
+  updatedAt?: number;
 }
 
 export interface Category {

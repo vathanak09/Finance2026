@@ -493,7 +493,12 @@ export const DashboardTab: React.FC = () => {
                   <CategoryBadge color={cat.color} icon={cat.icon} size="md" />
                   <div>
                     <h5 className="font-bold text-sm text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{cat.name}</h5>
-                    <p className="text-xs text-slate-500 mt-0.5">{formatDateDisplay(t.date)}{t.time ? ` • ${formatTime12(t.time)}` : ''} • {t.description || 'គ្មានការពិពណ៌នា'}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {formatDateDisplay(t.date)}
+                      {t.time ? ` • ${formatTime12(t.time)}` : ''}
+                      {t.createdByName ? ` • ដោយ ${t.createdByName}` : ''}
+                      {' • '}{t.description || 'គ្មានការពិពណ៌នា'}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">

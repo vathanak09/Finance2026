@@ -13,10 +13,15 @@ import { IncomeCalculator } from './components/apps/IncomeCalculator';
 import { SettingsTab } from './components/settings/SettingsTab';
 import { TransactionModal } from './components/transactions/TransactionModal';
 import { TransactionDetailModal } from './components/transactions/TransactionDetailModal';
+import { LoginScreen } from './components/auth/LoginScreen';
 
 const MainContent: React.FC = () => {
-  const { activeTab, viewingTransaction, setViewingTransaction, setEditingTransaction } = useFinance();
+  const { activeTab, viewingTransaction, setViewingTransaction, setEditingTransaction, currentUser, accountsLoaded } = useFinance();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  if (!accountsLoaded || !currentUser) {
+    return <LoginScreen />;
+  }
 
   return (
     <div className="h-full flex flex-col md:flex-row overflow-hidden bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-200 transition-colors duration-200 font-sans relative">

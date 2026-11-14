@@ -6,6 +6,8 @@ import type { Category } from '../../types/finance';
 import { CategoryBadge } from '../../utils/categoryIcons';
 import { PWAInstallModal } from '../common/PWAInstallModal';
 import { CurrencyInput } from '../common/CurrencyInput';
+import { AccountManagementSection } from './AccountManagementSection';
+import { ActivityLogSection } from './ActivityLogSection';
 
 export const SettingsTab: React.FC = () => {
   const { 
@@ -77,6 +79,9 @@ export const SettingsTab: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto animate-fade-in">
+      {/* Account Profile & Admin Account Management */}
+      <AccountManagementSection />
+
       {/* Install App Banner Card */}
       <div className="glass-panel p-6 rounded-2xl md:rounded-3xl shadow-sm border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent space-y-3 relative overflow-hidden">
         <div className="flex items-center justify-between">
@@ -231,6 +236,9 @@ export const SettingsTab: React.FC = () => {
           * ការ Restore នឹងប្រើប្រាស់ទិន្នន័យថ្មីពីឯកសារ Backup របស់អ្នក។
         </p>
       </div>
+
+      {/* Activity Log Card */}
+      <ActivityLogSection />
 
       <CategoryModal 
         isOpen={isCategoryModalOpen}

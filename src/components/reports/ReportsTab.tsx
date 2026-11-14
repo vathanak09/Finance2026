@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { Search, ChevronDown, X } from 'lucide-react';
+import { Search, ChevronDown, X, User } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { CategoryBadge } from '../../utils/categoryIcons';
@@ -448,12 +448,13 @@ export const ReportsTab: React.FC = () => {
                     <th className="p-2 sm:p-3 px-2 sm:px-4">ចំនួនទឹកប្រាក់</th>
                     <th className="p-2 sm:p-3 px-2 sm:px-4">ប្រភេទ</th>
                     <th className="p-2 sm:p-3 px-2 sm:px-4">ការពិពណ៌នា</th>
+                    <th className="hidden md:table-cell p-2 sm:p-3 px-2 sm:px-4">អ្នកបញ្ចូល</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                   {filteredTxs.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="py-12 text-center text-slate-400 font-medium text-xs">
+                      <td colSpan={5} className="py-12 text-center text-slate-400 font-medium text-xs">
                         មិនមានទិន្នន័យប្រតិបត្តិការឡើយ! (No transactions found)
                       </td>
                     </tr>
@@ -495,6 +496,22 @@ export const ReportsTab: React.FC = () => {
                             <p className="line-clamp-2 max-w-[220px] leading-tight">
                               {t.description || '-'}
                             </p>
+                            {t.createdByName && (
+                              <span className="md:hidden mt-1 inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                <User className="w-2.5 h-2.5" />
+                                <span>{t.createdByName}</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="hidden md:table-cell p-2 sm:p-3 px-2 sm:px-4 whitespace-nowrap">
+                            {t.createdByName ? (
+                              <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold">
+                                <User className="w-3 h-3 text-emerald-500" />
+                                <span>{t.createdByName}</span>
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-slate-400">-</span>
+                            )}
                           </td>
                         </tr>
                       );
