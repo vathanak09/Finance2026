@@ -128,22 +128,19 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
     }
   };
 
+  const currencyLabel = currency === 'USD' ? 'ដុល្លារ' : 'រៀល';
+
   const symbolPaddingClass = hideSymbol
     ? ''
     : currency === 'USD'
-    ? '!pl-8'
-    : '!pr-9';
+    ? '!pr-16'
+    : '!pr-14';
 
   const resolvedPlaceholder =
     placeholder !== undefined ? placeholder : currency === 'USD' ? '0.00' : '0';
 
   return (
     <div className="relative flex items-center w-full">
-      {!hideSymbol && currency === 'USD' && (
-        <span className="absolute left-3.5 text-sm font-extrabold text-blue-600 dark:text-blue-400 pointer-events-none select-none">
-          $
-        </span>
-      )}
       <input
         ref={inputRef}
         type="text"
@@ -156,9 +153,15 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
         onBlur={onBlur}
         className={`${className} ${symbolPaddingClass}`}
       />
-      {!hideSymbol && currency === 'KHR' && (
-        <span className="absolute right-3.5 text-sm font-extrabold text-emerald-600 dark:text-emerald-400 pointer-events-none select-none">
-          ៛
+      {!hideSymbol && (
+        <span
+          className={`absolute right-3.5 text-xs font-extrabold pointer-events-none select-none ${
+            currency === 'USD'
+              ? 'text-blue-600 dark:text-blue-400'
+              : 'text-emerald-600 dark:text-emerald-400'
+          }`}
+        >
+          {currencyLabel}
         </span>
       )}
     </div>

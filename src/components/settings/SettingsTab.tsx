@@ -100,9 +100,9 @@ export const SettingsTab: React.FC = () => {
       {/* Exchange Rate Card */}
       <div className="glass-panel p-6 rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4 relative">
         <h4 className="font-bold text-lg text-slate-900 dark:text-white">អត្រាប្តូរប្រាក់ (Exchange Rate)</h4>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
           <span className="text-sm font-bold text-slate-600 dark:text-slate-300">$1 USD =</span>
-          <div className="w-40">
+          <div className="w-44">
             <CurrencyInput
               currency="KHR"
               value={exchangeRate || ''}
@@ -113,7 +113,6 @@ export const SettingsTab: React.FC = () => {
               className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-base font-extrabold text-emerald-600 dark:text-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>
-          <span className="text-sm font-bold text-slate-600 dark:text-slate-300">KHR</span>
         </div>
       </div>
 
