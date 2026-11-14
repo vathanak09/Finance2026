@@ -6,6 +6,7 @@ import { X, Calendar, Clock, ChevronDown, Check } from 'lucide-react';
 import { CustomCalendarPicker } from '../common/CustomCalendarPicker';
 import { CustomClockTimePicker } from '../common/CustomClockTimePicker';
 import { CustomSelect } from '../common/CustomSelect';
+import { CurrencyInput } from '../common/CurrencyInput';
 import { getLocalDateString, getLocalTimeString, formatDateDisplay, formatTime12, parseLocalDate } from '../../utils/dateUtils';
 import { CategoryBadge } from '../../utils/categoryIcons';
 
@@ -213,13 +214,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2">
               <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">ចំនួនទឹកប្រាក់ *</label>
-              <input
-                type="number"
-                step="any"
+              <CurrencyInput
                 required
-                placeholder="0.00"
+                currency={currency}
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={setAmount}
                 className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
               />
             </div>

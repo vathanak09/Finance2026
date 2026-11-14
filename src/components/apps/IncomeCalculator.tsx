@@ -3,6 +3,7 @@ import { useFinance } from '../../context/FinanceContext';
 import { ArrowLeft, CheckSquare, Square, Plus, Check, AlertTriangle, Calculator } from 'lucide-react';
 import { getLocalDateString, getLocalTimeString } from '../../utils/dateUtils';
 import { CustomSelect } from '../common/CustomSelect';
+import { CurrencyInput } from '../common/CurrencyInput';
 
 const CALC_DESCRIPTIONS = new Set(['ប្រាក់បង់ផ្ទាល់', 'ប្រាក់បង់តាម QR', 'លុយលក់ដូរ']);
 
@@ -358,26 +359,24 @@ export const IncomeCalculator: React.FC = () => {
               <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
                 ប្រាក់បង់ផ្ទាល់ (ពីសៀវភៅ)
               </label>
-              <input
-                type="number"
-                step="any"
+              <CurrencyInput
+                currency="KHR"
                 value={cash}
-                onChange={(e) => setCash(e.target.value)}
+                onChange={setCash}
                 placeholder="0"
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 outline-none focus:border-emerald-500 transition-colors text-slate-900 dark:text-white font-medium"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 outline-none focus:border-emerald-500 transition-colors text-slate-900 dark:text-white font-bold"
               />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
                 ប្រាក់បង់តាម QR (ពីសៀវភៅ)
               </label>
-              <input
-                type="number"
-                step="any"
+              <CurrencyInput
+                currency="KHR"
                 value={qr}
-                onChange={(e) => setQr(e.target.value)}
+                onChange={setQr}
                 placeholder="0"
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 outline-none focus:border-emerald-500 transition-colors text-slate-900 dark:text-white font-medium"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 outline-none focus:border-emerald-500 transition-colors text-slate-900 dark:text-white font-bold"
               />
             </div>
           </div>
@@ -386,13 +385,12 @@ export const IncomeCalculator: React.FC = () => {
             <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
               លុយរាប់ជាក់ស្តែង (បង់ផ្ទាល់ + លក់ដូរ + បោះពុម្ព)
             </label>
-            <input
-              type="number"
-              step="any"
+            <CurrencyInput
+              currency="KHR"
               value={actualCash}
-              onChange={(e) => setActualCash(e.target.value)}
+              onChange={setActualCash}
               placeholder="បញ្ចូលលុយសាច់ប្រាក់ដែលរាប់បានពេលយប់..."
-              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 outline-none focus:border-emerald-500 transition-colors text-slate-900 dark:text-white font-medium placeholder-slate-400 dark:placeholder-slate-500"
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 outline-none focus:border-emerald-500 transition-colors text-slate-900 dark:text-white font-bold placeholder-slate-400 dark:placeholder-slate-500"
             />
           </div>
         </div>

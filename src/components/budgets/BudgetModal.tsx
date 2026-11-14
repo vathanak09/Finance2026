@@ -5,6 +5,7 @@ import type { Currency } from '../../types/finance';
 import { X, Calendar, ChevronDown } from 'lucide-react';
 import { CustomCalendarPicker } from '../common/CustomCalendarPicker';
 import { CustomSelect } from '../common/CustomSelect';
+import { CurrencyInput } from '../common/CurrencyInput';
 import { getLocalDateString, formatDateDisplay } from '../../utils/dateUtils';
 
 interface BudgetModalProps {
@@ -246,13 +247,11 @@ export const BudgetModal: React.FC<BudgetModalProps> = ({ isOpen, onClose }) => 
               <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                 ថវិកាអតិបរមា
               </label>
-              <input
-                type="number"
-                step="any"
+              <CurrencyInput
                 required
-                placeholder="0.00"
+                currency={currency}
                 value={limitAmount}
-                onChange={(e) => setLimitAmount(e.target.value)}
+                onChange={setLimitAmount}
                 className="w-full px-4 py-3 rounded-2xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-bold text-slate-800 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
               />
             </div>

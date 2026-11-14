@@ -5,6 +5,7 @@ import { CategoryModal } from './CategoryModal';
 import type { Category } from '../../types/finance';
 import { CategoryBadge } from '../../utils/categoryIcons';
 import { PWAInstallModal } from '../common/PWAInstallModal';
+import { CurrencyInput } from '../common/CurrencyInput';
 
 export const SettingsTab: React.FC = () => {
   const { 
@@ -101,13 +102,18 @@ export const SettingsTab: React.FC = () => {
         <h4 className="font-bold text-lg text-slate-900 dark:text-white">អត្រាប្តូរប្រាក់ (Exchange Rate)</h4>
         <div className="flex items-center space-x-4">
           <span className="text-sm font-bold text-slate-600 dark:text-slate-300">$1 USD =</span>
-          <input
-            type="number"
-            value={exchangeRate}
-            onChange={(e) => setExchangeRate(Number(e.target.value))}
-            className="w-36 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-base font-extrabold text-emerald-600 dark:text-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-          />
-          <span className="text-sm font-bold text-slate-600 dark:text-slate-300">៛ KHR</span>
+          <div className="w-40">
+            <CurrencyInput
+              currency="KHR"
+              value={exchangeRate || ''}
+              onChange={(val) => setExchangeRate(val ? Number(val) : 0)}
+              onBlur={() => {
+                if (!exchangeRate || exchangeRate <= 0) setExchangeRate(4000);
+              }}
+              className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-base font-extrabold text-emerald-600 dark:text-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            />
+          </div>
+          <span className="text-sm font-bold text-slate-600 dark:text-slate-300">KHR</span>
         </div>
       </div>
 
