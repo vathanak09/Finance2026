@@ -1,13 +1,13 @@
 import React from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { Plus, LogOut, ShieldCheck, User } from 'lucide-react';
+import { Plus, LogOut, ShieldCheck, User, Calculator } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAddModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
-  const { activeTab, currentUser, logout, setActiveTab } = useFinance();
+  const { activeTab, currentUser, logout, setActiveTab, isCalculatorOpen, setIsCalculatorOpen } = useFinance();
 
   const titles: Record<string, { title: string; desc: string }> = {
     dashboard: { title: 'ផ្ទាំងគ្រប់គ្រងសង្ខេប', desc: 'ទិដ្ឋភាពរួមនៃស្ថានភាពចំណូលចំណាយរបស់អ្នក' },
@@ -39,6 +39,18 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
         </div>
 
         <div className="flex items-center space-x-1.5 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsCalculatorOpen((prev) => !prev)}
+            className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+              isCalculatorOpen
+                ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/25'
+                : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800/60'
+            }`}
+            title="ម៉ាស៊ីនគិតលេខ Mini"
+          >
+            <Calculator className="w-4 h-4" />
+          </button>
           {currentUser && (
             <button
               type="button"
@@ -73,6 +85,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
         </div>
 
         <div className="flex items-center space-x-3">
+          <button
+            type="button"
+            onClick={() => setIsCalculatorOpen((prev) => !prev)}
+            className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              isCalculatorOpen
+                ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-500/25'
+                : 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
+            }`}
+            title="បើក/បិទ ម៉ាស៊ីនគិតលេខ Mini"
+          >
+            <Calculator className="w-4 h-4" />
+            <span>គិតលេខ</span>
+          </button>
+
           {currentUser && (
             <button
               type="button"

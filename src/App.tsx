@@ -14,9 +14,19 @@ import { SettingsTab } from './components/settings/SettingsTab';
 import { TransactionModal } from './components/transactions/TransactionModal';
 import { TransactionDetailModal } from './components/transactions/TransactionDetailModal';
 import { LoginScreen } from './components/auth/LoginScreen';
+import { FloatingCalculator } from './components/common/FloatingCalculator';
 
 const MainContent: React.FC = () => {
-  const { activeTab, viewingTransaction, setViewingTransaction, setEditingTransaction, currentUser, accountsLoaded } = useFinance();
+  const {
+    activeTab,
+    viewingTransaction,
+    setViewingTransaction,
+    setEditingTransaction,
+    currentUser,
+    accountsLoaded,
+    isCalculatorOpen,
+    setIsCalculatorOpen,
+  } = useFinance();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   if (!accountsLoaded || !currentUser) {
@@ -58,6 +68,10 @@ const MainContent: React.FC = () => {
             setViewingTransaction(null);
             setEditingTransaction(tx);
           }}
+        />
+        <FloatingCalculator
+          isOpen={isCalculatorOpen}
+          onClose={() => setIsCalculatorOpen(false)}
         />
       </div>
     </div>

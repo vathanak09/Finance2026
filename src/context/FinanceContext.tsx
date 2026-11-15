@@ -93,6 +93,8 @@ interface FinanceContextType {
     actorOverride?: UserAccount
   ) => Promise<void>;
   clearActivityLogs: () => Promise<void>;
+  isCalculatorOpen: boolean;
+  setIsCalculatorOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -132,6 +134,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [viewingTransaction, setViewingTransaction] = useState<Transaction | null>(null);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState<boolean>(false);
   const [googleSheetSettings, setGoogleSheetSettings] = useState<{ webAppUrl: string; sheetViewLink: string }>(() => ({
     webAppUrl: localStorage.getItem('g_apps_script_url') || '',
     sheetViewLink: localStorage.getItem('g_sheet_view_link') || ''
@@ -752,7 +755,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       updateAccount,
       deleteAccount,
       logActivity,
-      clearActivityLogs
+      clearActivityLogs,
+      isCalculatorOpen,
+      setIsCalculatorOpen
     }}>
       {children}
     </FinanceContext.Provider>

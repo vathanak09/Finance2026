@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useFinance } from '../../context/FinanceContext';
 import type { Currency, TransactionType } from '../../types/finance';
-import { X, Calendar, Clock, ChevronDown, Check } from 'lucide-react';
+import { X, Calendar, Clock, ChevronDown, Check, Calculator } from 'lucide-react';
 import { CustomCalendarPicker } from '../common/CustomCalendarPicker';
 import { CustomClockTimePicker } from '../common/CustomClockTimePicker';
 import { CustomSelect } from '../common/CustomSelect';
@@ -16,7 +16,7 @@ interface TransactionModalProps {
 }
 
 export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose }) => {
-  const { categories, transactions, addTransaction, updateTransaction, editingTransaction, setEditingTransaction } = useFinance();
+  const { categories, transactions, addTransaction, updateTransaction, editingTransaction, setEditingTransaction, isCalculatorOpen, setIsCalculatorOpen } = useFinance();
   const [type, setType] = useState<TransactionType>('expense');
   const [amount, setAmount] = useState<string>('');
   const [currency, setCurrency] = useState<Currency>('KHR');
@@ -182,9 +182,23 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
           <h3 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white">
             {editingTransaction ? 'កែប្រែប្រតិបត្តិការ' : 'បន្ថែមប្រតិបត្តិការ'}
           </h3>
-          <button onClick={handleClose} className="p-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-all cursor-pointer">
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center space-x-1.5">
+            <button
+              type="button"
+              onClick={() => setIsCalculatorOpen((prev) => !prev)}
+              className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
+                isCalculatorOpen
+                  ? 'bg-emerald-600 text-white border-emerald-600'
+                  : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100'
+              }`}
+              title="ម៉ាស៊ីនគិតលេខ Mini"
+            >
+              <Calculator className="w-4 h-4" />
+            </button>
+            <button onClick={handleClose} className="p-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-all cursor-pointer">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
