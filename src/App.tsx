@@ -10,6 +10,7 @@ import { ReportsTab } from './components/reports/ReportsTab';
 import { BudgetsTab } from './components/budgets/BudgetsTab';
 import { AppsTab } from './components/apps/AppsTab';
 import { IncomeCalculator } from './components/apps/IncomeCalculator';
+import { SummaryReportTab } from './components/apps/SummaryReportTab';
 import { SettingsTab } from './components/settings/SettingsTab';
 import { TransactionModal } from './components/transactions/TransactionModal';
 import { TransactionDetailModal } from './components/transactions/TransactionDetailModal';
@@ -53,6 +54,7 @@ const MainContent: React.FC = () => {
             {activeTab === 'apps' && <AppsTab />}
             {activeTab === 'budgets' && <BudgetsTab />}
             {activeTab === 'income_calculator' && <IncomeCalculator />}
+            {activeTab === 'summary_report' && <SummaryReportTab />}
             {activeTab === 'settings' && <SettingsTab />}
           </div>
         </main>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { Wallet, ChevronRight, Calculator } from 'lucide-react';
+import { Wallet, ChevronRight, Calculator, BarChart2 } from 'lucide-react';
 
 export const AppsTab: React.FC = () => {
   const { setActiveTab, setIsCalculatorOpen } = useFinance();
@@ -59,6 +59,23 @@ export const AppsTab: React.FC = () => {
             <div className="ml-4 flex-1">
               <h4 className="font-bold text-slate-900 dark:text-white text-base">ម៉ាស៊ីនគិតលេខ Mini</h4>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">គិតលេខរហ័សលើអេក្រង់ រួមជាមួយប៊ូតុង Memory (MC/MR/M+/M-)</p>
+            </div>
+
+            <ChevronRight className="w-5 h-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors" />
+          </button>
+
+          {/* Summary Report App Item */}
+          <button
+            onClick={() => setActiveTab('summary_report')}
+            className="flex items-center p-4 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 transition-all hover:shadow-md cursor-pointer group text-left"
+          >
+            <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+              <BarChart2 className="w-6 h-6" />
+            </div>
+            
+            <div className="ml-4 flex-1">
+              <h4 className="font-bold text-slate-900 dark:text-white text-base">របាយការណ៍សរុប</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">ក្រាបប្រៀបធៀបតាមខែ និងតាមប្រភេទ ជាមួយតារាងសរុប</p>
             </div>
 
             <ChevronRight className="w-5 h-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors" />

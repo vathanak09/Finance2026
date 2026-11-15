@@ -41,7 +41,7 @@ export const Sidebar: React.FC = () => {
 
         <nav className="flex-1 space-y-2 relative z-10 px-2">
           {navItems.map((item) => {
-            const isActive = activeTab === item.id || (item.id === 'apps' && (activeTab === 'budgets' || activeTab === 'income_calculator'));
+            const isActive = activeTab === item.id || (item.id === 'apps' && (activeTab === 'budgets' || activeTab === 'income_calculator' || activeTab === 'summary_report'));
             return (
               <button
                 key={item.id}

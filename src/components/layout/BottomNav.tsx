@@ -17,7 +17,7 @@ export const BottomNav: React.FC = () => {
   return (
     <nav className="md:hidden fixed bottom-0 w-full glass-panel border-t border-slate-200 dark:border-slate-800 flex justify-around items-center p-2 z-40 pb-safe">
       {navItems.map((item) => {
-        const isActive = activeTab === item.id || (item.id === 'apps' && (activeTab === 'budgets' || activeTab === 'income_calculator'));
+        const isActive = activeTab === item.id || (item.id === 'apps' && (activeTab === 'budgets' || activeTab === 'income_calculator' || activeTab === 'summary_report'));
         return (
           <button
             key={item.id}
