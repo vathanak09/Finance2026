@@ -1,5 +1,5 @@
 // Service Worker for Khmer Finance Tracker PWA
-const CACHE_NAME = 'khmer-finance-v2';
+const CACHE_NAME = 'khmer-finance-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -36,8 +36,9 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests and Firebase / external APIs
   if (
     event.request.method !== 'GET' ||
-    url.hostname.includes('firestore.googleapis.com') ||
+    url.hostname.includes('firebasedatabase.app') ||
     url.hostname.includes('firebaseio.com') ||
+    url.hostname.includes('firestore.googleapis.com') ||
     url.hostname.includes('identitytoolkit.googleapis.com')
   ) {
     return;

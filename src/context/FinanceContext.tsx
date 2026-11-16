@@ -14,11 +14,7 @@ import { rtdb } from '../services/firebase';
 import { ref, onValue, push, set, update, remove } from 'firebase/database';
 import { getLocalDateString } from '../utils/dateUtils';
 import { hashPassword, normalizeUsername } from '../utils/authUtils';
-import {
-  migrateFirestoreToRtdb,
-  stripUndefined,
-  type MigrationCounts,
-} from '../utils/rtdbMigration';
+import { stripUndefined } from '../utils/rtdbHelpers';
 
 const AUTH_STORAGE_KEY = 'finance_auth_user_id';
 
@@ -85,7 +81,6 @@ interface FinanceContextType {
     actorOverride?: UserAccount
   ) => Promise<void>;
   clearActivityLogs: () => Promise<void>;
-  resyncFromFirestore: () => Promise<MigrationCounts>;
   isCalculatorOpen: boolean;
   setIsCalculatorOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -171,13 +166,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [exchangeRate]);
 
   useEffect(() => {
-    let cancelled = false;
-    const unsubs: Array<() => void> = [];
-
-    const startRtdbListeners = () => {
-      if (cancelled) return;
-
-      const unsubTx = onValue(ref(rtdb, 'transactions'), (snapshot) => {
+    const unsubTx = onValue(ref(rtdb, 'transactions'), (snapshot) => {
         const val = snapshot.val() as Record<string, any> | null;
         const docs: Transaction[] = val
           ? Object.entries(val).map(([id, d]) => {
@@ -314,20 +303,13 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       });
 
-      unsubs.push(unsubTx, unsubCat, unsubBg, unsubAccounts, unsubLogs, unsubSettings);
-    };
-
-    migrateFirestoreToRtdb()
-      .catch((err) => {
-        console.error('Firestore -> RTDB migration check error:', err);
-      })
-      .finally(() => {
-        startRtdbListeners();
-      });
-
     return () => {
-      cancelled = true;
-      unsubs.forEach((fn) => fn());
+      unsubTx();
+      unsubCat();
+      unsubBg();
+      unsubAccounts();
+      unsubLogs();
+      unsubSettings();
     };
   }, []);
 
@@ -570,15 +552,6 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     await logActivity('settings_update', 'បានសម្អាតកំណត់ត្រាសកម្មភាពចាស់ៗទាំងអស់');
   };
 
-  const resyncFromFirestore = async (): Promise<MigrationCounts> => {
-    const res = await migrateFirestoreToRtdb(true);
-    await logActivity(
-      'settings_update',
-      `បានពិនិត្យ និងផ្ទេរទិន្នន័យបន្ថែមពី Firestore (${res.counts.transactions} ប្រតិបត្តិការ)`
-    );
-    return res.counts;
-  };
-
   const addTransaction = async (tx: Omit<Transaction, 'id'>) => {
     const actorName = currentUser?.displayName || currentUser?.username;
     const payload = {
@@ -773,7 +746,6 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       deleteAccount,
       logActivity,
       clearActivityLogs,
-      resyncFromFirestore,
       isCalculatorOpen,
       setIsCalculatorOpen
     }}>
