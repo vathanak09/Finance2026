@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { Moon, Sun, Tag, Plus, Edit2, Trash2, Download, Upload } from 'lucide-react';
+import { Moon, Sun, Tag, Plus, Edit2, Trash2, Download, Upload, RefreshCw } from 'lucide-react';
 import { CategoryModal } from './CategoryModal';
 import type { Category } from '../../types/finance';
 import { CategoryBadge } from '../../utils/categoryIcons';
@@ -14,13 +14,29 @@ export const SettingsTab: React.FC = () => {
     transactions, categories, budgets, 
     deleteCategory, exchangeRate, setExchangeRate, 
     isDarkMode, setIsDarkMode, currencyMode, restoreBackup,
-    googleSheetSettings
+    googleSheetSettings, currentUser, resyncFromFirestore
   } = useFinance();
   
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [isSyncingFirestore, setIsSyncingFirestore] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleResyncFromFirestore = async () => {
+    setIsSyncingFirestore(true);
+    try {
+      const counts = await resyncFromFirestore();
+      alert(
+        `បានផ្ទៀងផ្ទាត់ និងផ្ទេរទិន្នន័យបន្ថែមរួចរាល់!\n• ប្រតិបត្តិការ៖ ${counts.transactions}\n• ប្រភេទ៖ ${counts.categories}\n• ថវិកា៖ ${counts.budgets}\n• គណនី៖ ${counts.accounts}\n• Log៖ ${counts.activity_logs}`
+      );
+    } catch (err: any) {
+      console.error(err);
+      alert(`មានបញ្ហាក្នុងការផ្ទេរទិន្នន័យ៖ ${err?.message || 'Unknown error'}`);
+    } finally {
+      setIsSyncingFirestore(false);
+    }
+  };
 
   const handleEditCategory = (cat: Category) => {
     setEditingCategory(cat);
@@ -233,8 +249,25 @@ export const SettingsTab: React.FC = () => {
           />
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          * ការ Restore នឹងប្រើប្រាស់ទិន្នន័យថ្មីពីឯកសារ Backup របស់អ្នក។
+          * ការ Restore នឹងប្រើប្រាស់ទិន្នន័យថ្មីពីឯកសារ Backup របស់អ្នក។ កម្មវិធីកំពុងប្រើប្រាស់ Firebase Realtime Database (គ្មានកម្រិត 50,000 reads/ថ្ងៃ)។
         </p>
+
+        {currentUser?.role === 'admin' && (
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              ផ្ទៀងផ្ទាត់ទិន្នន័យចាស់ពី Firestore (បើខ្វះ)៖
+            </span>
+            <button
+              type="button"
+              onClick={handleResyncFromFirestore}
+              disabled={isSyncingFirestore}
+              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 disabled:opacity-60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 text-xs font-bold transition-colors cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncingFirestore ? 'animate-spin' : ''}`} />
+              <span>{isSyncingFirestore ? 'កំពុងផ្ទេរ...' : 'ផ្ទេរពី Firestore ម្តងទៀត'}</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Activity Log Card */}

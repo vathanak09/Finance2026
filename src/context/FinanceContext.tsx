@@ -10,23 +10,15 @@ import type {
   ActivityLog,
   ActivityAction,
 } from '../types/finance';
-import { db } from '../services/firebase';
-import {
-  collection,
-  onSnapshot,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  setDoc,
-  query,
-  orderBy,
-  limit,
-  getDocs,
-  writeBatch,
-} from 'firebase/firestore';
+import { rtdb } from '../services/firebase';
+import { ref, onValue, push, set, update, remove } from 'firebase/database';
 import { getLocalDateString } from '../utils/dateUtils';
 import { hashPassword, normalizeUsername } from '../utils/authUtils';
+import {
+  migrateFirestoreToRtdb,
+  stripUndefined,
+  type MigrationCounts,
+} from '../utils/rtdbMigration';
 
 const AUTH_STORAGE_KEY = 'finance_auth_user_id';
 
@@ -93,6 +85,7 @@ interface FinanceContextType {
     actorOverride?: UserAccount
   ) => Promise<void>;
   clearActivityLogs: () => Promise<void>;
+  resyncFromFirestore: () => Promise<MigrationCounts>;
   isCalculatorOpen: boolean;
   setIsCalculatorOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -178,152 +171,171 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [exchangeRate]);
 
   useEffect(() => {
-    const unsubTx = onSnapshot(collection(db, 'transactions'), (snapshot) => {
-      const docs: Transaction[] = snapshot.docs.map(docSnap => {
-        const d = docSnap.data();
-        const txDate = d.date || getLocalDateString();
-        const txTime = d.time ? String(d.time).trim() : '12:00'; // Set legacy transaction time to 12:00 PM
-        const txCreatedAt = d.createdAt 
-          ? Number(d.createdAt) 
-          : (new Date(`${txDate}T${txTime}:00`).getTime() || Date.now());
+    let cancelled = false;
+    const unsubs: Array<() => void> = [];
 
-        return {
-          id: docSnap.id,
-          amount: Number(d.amount || 0),
-          currency: d.currency || 'USD',
-          type: d.type || 'expense',
-          categoryId: d.categoryId || d.category_id || 'cat_other_exp',
-          date: txDate,
-          time: txTime,
-          createdAt: txCreatedAt,
-          description: d.description || '',
-          createdById: d.createdById || undefined,
-          createdByName: d.createdByName || undefined,
-          updatedById: d.updatedById || undefined,
-          updatedByName: d.updatedByName || undefined,
-          updatedAt: d.updatedAt ? Number(d.updatedAt) : undefined,
-        };
+    const startRtdbListeners = () => {
+      if (cancelled) return;
+
+      const unsubTx = onValue(ref(rtdb, 'transactions'), (snapshot) => {
+        const val = snapshot.val() as Record<string, any> | null;
+        const docs: Transaction[] = val
+          ? Object.entries(val).map(([id, d]) => {
+              const txDate = d.date || getLocalDateString();
+              const txTime = d.time ? String(d.time).trim() : '12:00';
+              const txCreatedAt = d.createdAt
+                ? Number(d.createdAt)
+                : new Date(`${txDate}T${txTime}:00`).getTime() || Date.now();
+
+              return {
+                id,
+                amount: Number(d.amount || 0),
+                currency: d.currency || 'USD',
+                type: d.type || 'expense',
+                categoryId: d.categoryId || d.category_id || 'cat_other_exp',
+                date: txDate,
+                time: txTime,
+                createdAt: txCreatedAt,
+                description: d.description || '',
+                createdById: d.createdById || undefined,
+                createdByName: d.createdByName || undefined,
+                updatedById: d.updatedById || undefined,
+                updatedByName: d.updatedByName || undefined,
+                updatedAt: d.updatedAt ? Number(d.updatedAt) : undefined,
+              };
+            })
+          : [];
+
+        // Sort newest to oldest by default (ពីថ្មីទៅចាស់)
+        docs.sort((a, b) => {
+          const timeA = a.createdAt || new Date(`${a.date}T${a.time || '12:00'}:00`).getTime();
+          const timeB = b.createdAt || new Date(`${b.date}T${b.time || '12:00'}:00`).getTime();
+          return timeB - timeA;
+        });
+
+        setTransactions(docs);
       });
 
-      // Sort newest to oldest by default (ពីថ្មីទៅចាស់)
-      docs.sort((a, b) => {
-        const timeA = a.createdAt || new Date(`${a.date}T${a.time || '12:00'}:00`).getTime();
-        const timeB = b.createdAt || new Date(`${b.date}T${b.time || '12:00'}:00`).getTime();
-        return timeB - timeA;
-      });
-
-      setTransactions(docs);
-    });
-
-    const unsubCat = onSnapshot(collection(db, 'categories'), (snapshot) => {
-      if (!snapshot.empty) {
-        const docs: Category[] = snapshot.docs.map(docSnap => {
-          const d = docSnap.data();
-          return {
-            id: docSnap.id,
+      const unsubCat = onValue(ref(rtdb, 'categories'), (snapshot) => {
+        const val = snapshot.val() as Record<string, any> | null;
+        if (val) {
+          const docs: Category[] = Object.entries(val).map(([id, d]) => ({
+            id,
             name: d.name,
             type: d.type,
             icon: d.icon || 'tag',
-            color: d.color || 'from-slate-400 to-slate-600'
-          };
-        });
-        setCategories(docs);
-      }
-    });
-
-    const unsubBg = onSnapshot(collection(db, 'budgets'), (snapshot) => {
-      const docs: Budget[] = snapshot.docs.map(docSnap => {
-        const d = docSnap.data();
-        return {
-          id: docSnap.id,
-          name: d.name || '',
-          categoryId: d.categoryId || d.category_id || 'all',
-          categoryIds: d.categoryIds || (d.categoryId ? [d.categoryId] : ['all']),
-          limitAmount: Number(d.limitAmount || d.limit_amount || 0),
-          currency: d.currency || 'KHR',
-          startDate: d.startDate || d.start_date || getLocalDateString(),
-          endDate: d.endDate || d.end_date || getLocalDateString(),
-          description: d.description || ''
-        };
-      });
-      setBudgets(docs);
-    });
-
-    const unsubAccounts = onSnapshot(
-      collection(db, 'accounts'),
-      (snapshot) => {
-        const docs: UserAccount[] = snapshot.docs.map((docSnap) => {
-          const d = docSnap.data();
-          return {
-            id: docSnap.id,
-            username: d.username || '',
-            displayName: d.displayName || d.username || '',
-            passwordHash: d.passwordHash || '',
-            role: d.role === 'admin' ? 'admin' : 'member',
-            isActive: d.isActive !== false,
-            createdAt: Number(d.createdAt || Date.now()),
-            createdByName: d.createdByName || undefined,
-          };
-        });
-        docs.sort((a, b) => a.createdAt - b.createdAt);
-        setAccounts(docs);
-        setAccountsLoaded(true);
-      },
-      (err) => {
-        console.error('Failed to subscribe to accounts:', err);
-        setAccountsLoaded(true);
-      }
-    );
-
-    const logsQuery = query(collection(db, 'activity_logs'), orderBy('createdAt', 'desc'), limit(250));
-    const unsubLogs = onSnapshot(logsQuery, (snapshot) => {
-      const docs: ActivityLog[] = snapshot.docs.map((docSnap) => {
-        const d = docSnap.data();
-        return {
-          id: docSnap.id,
-          action: d.action || 'tx_create',
-          actorId: d.actorId || 'system',
-          actorName: d.actorName || 'ប្រព័ន្ធ',
-          actorUsername: d.actorUsername || undefined,
-          summary: d.summary || '',
-          details: d.details || undefined,
-          targetId: d.targetId || undefined,
-          createdAt: Number(d.createdAt || Date.now()),
-        };
-      });
-      setActivityLogs(docs);
-    });
-
-    const unsubSettings = onSnapshot(doc(db, 'settings', 'google_sheet_sync'), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        const webAppUrl = data.webAppUrl || '';
-        const sheetViewLink = data.sheetViewLink || '';
-        setGoogleSheetSettings({ webAppUrl, sheetViewLink });
-        localStorage.setItem('g_apps_script_url', webAppUrl);
-        localStorage.setItem('g_sheet_view_link', sheetViewLink);
-      } else {
-        const localUrl = localStorage.getItem('g_apps_script_url') || '';
-        const localView = localStorage.getItem('g_sheet_view_link') || '';
-        if (localUrl || localView) {
-          setDoc(doc(db, 'settings', 'google_sheet_sync'), {
-            webAppUrl: localUrl,
-            sheetViewLink: localView,
-            updatedAt: Date.now()
-          }).catch(err => console.error('Failed to migrate Google Sheet settings:', err));
+            color: d.color || 'from-slate-400 to-slate-600',
+          }));
+          setCategories(docs);
         }
-      }
-    });
+      });
+
+      const unsubBg = onValue(ref(rtdb, 'budgets'), (snapshot) => {
+        const val = snapshot.val() as Record<string, any> | null;
+        const docs: Budget[] = val
+          ? Object.entries(val).map(([id, d]) => ({
+              id,
+              name: d.name || '',
+              categoryId: d.categoryId || d.category_id || 'all',
+              categoryIds: d.categoryIds || (d.categoryId ? [d.categoryId] : ['all']),
+              limitAmount: Number(d.limitAmount || d.limit_amount || 0),
+              currency: d.currency || 'KHR',
+              startDate: d.startDate || d.start_date || getLocalDateString(),
+              endDate: d.endDate || d.end_date || getLocalDateString(),
+              description: d.description || '',
+            }))
+          : [];
+        setBudgets(docs);
+      });
+
+      const unsubAccounts = onValue(
+        ref(rtdb, 'accounts'),
+        (snapshot) => {
+          const val = snapshot.val() as Record<string, any> | null;
+          const docs: UserAccount[] = val
+            ? Object.entries(val).map(([id, d]) => ({
+                id,
+                username: d.username || '',
+                displayName: d.displayName || d.username || '',
+                passwordHash: d.passwordHash || '',
+                role: d.role === 'admin' ? 'admin' : 'member',
+                isActive: d.isActive !== false,
+                createdAt: Number(d.createdAt || Date.now()),
+                createdByName: d.createdByName || undefined,
+              }))
+            : [];
+          docs.sort((a, b) => a.createdAt - b.createdAt);
+          setAccounts(docs);
+          setAccountsLoaded(true);
+        },
+        (err) => {
+          console.error('Failed to subscribe to RTDB accounts:', err);
+          setAccountsLoaded(true);
+        }
+      );
+
+      const unsubLogs = onValue(ref(rtdb, 'activity_logs'), (snapshot) => {
+        const val = snapshot.val() as Record<string, any> | null;
+        const docs: ActivityLog[] = val
+          ? Object.entries(val).map(([id, d]) => ({
+              id,
+              action: d.action || 'tx_create',
+              actorId: d.actorId || 'system',
+              actorName: d.actorName || 'ប្រព័ន្ធ',
+              actorUsername: d.actorUsername || undefined,
+              summary: d.summary || '',
+              details: d.details || undefined,
+              targetId: d.targetId || undefined,
+              createdAt: Number(d.createdAt || Date.now()),
+            }))
+          : [];
+        docs.sort((a, b) => b.createdAt - a.createdAt);
+        setActivityLogs(docs.slice(0, 250));
+      });
+
+      const unsubSettings = onValue(ref(rtdb, 'settings/google_sheet_sync'), (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const webAppUrl = data.webAppUrl || '';
+          const sheetViewLink = data.sheetViewLink || '';
+          setGoogleSheetSettings({ webAppUrl, sheetViewLink });
+          localStorage.setItem('g_apps_script_url', webAppUrl);
+          localStorage.setItem('g_sheet_view_link', sheetViewLink);
+        } else {
+          const localUrl = localStorage.getItem('g_apps_script_url') || '';
+          const localView = localStorage.getItem('g_sheet_view_link') || '';
+          if (localUrl || localView) {
+            set(ref(rtdb, 'settings/google_sheet_sync'), {
+              webAppUrl: localUrl,
+              sheetViewLink: localView,
+              updatedAt: Date.now(),
+            }).catch((err) => console.error('Failed to migrate Google Sheet settings:', err));
+          }
+        }
+      });
+
+      unsubs.push(unsubTx, unsubCat, unsubBg, unsubAccounts, unsubLogs, unsubSettings);
+    };
+
+    migrateFirestoreToRtdb()
+      .catch((err) => {
+        console.error('Firestore -> RTDB migration check error:', err);
+      })
+      .finally(() => {
+        startRtdbListeners();
+      });
 
     return () => {
-      unsubTx();
-      unsubCat();
-      unsubBg();
-      unsubAccounts();
-      unsubLogs();
-      unsubSettings();
+      cancelled = true;
+      unsubs.forEach((fn) => fn());
     };
   }, []);
+
+  const pushRtdbRecord = async (path: string, data: Record<string, any>): Promise<string> => {
+    const newRef = push(ref(rtdb, path));
+    await set(newRef, stripUndefined(data));
+    return newRef.key!;
+  };
 
   const logActivity = useCallback(
     async (
@@ -335,7 +347,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     ) => {
       const actor = actorOverride || currentUser;
       try {
-        await addDoc(collection(db, 'activity_logs'), {
+        await pushRtdbRecord('activity_logs', {
           action,
           actorId: actor?.id || 'system',
           actorName: actor?.displayName || actor?.username || 'ប្រព័ន្ធ',
@@ -381,7 +393,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const passwordHash = await hashPassword(password);
     const now = Date.now();
-    const docRef = await addDoc(collection(db, 'accounts'), {
+    const newId = await pushRtdbRecord('accounts', {
       username: cleanUser,
       displayName: cleanName,
       passwordHash,
@@ -392,7 +404,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
 
     const newAdmin: UserAccount = {
-      id: docRef.id,
+      id: newId,
       username: cleanUser,
       displayName: cleanName,
       passwordHash,
@@ -402,9 +414,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       createdByName: cleanName,
     };
 
-    localStorage.setItem(AUTH_STORAGE_KEY, docRef.id);
-    setAuthUserId(docRef.id);
-    await logActivity('account_create', `បង្កើតគណនី Admin ដំបូង "${cleanName}" (@${cleanUser})`, undefined, docRef.id, newAdmin);
+    localStorage.setItem(AUTH_STORAGE_KEY, newId);
+    setAuthUserId(newId);
+    await logActivity('account_create', `បង្កើតគណនី Admin ដំបូង "${cleanName}" (@${cleanUser})`, undefined, newId, newAdmin);
     return { ok: true };
   };
 
@@ -456,7 +468,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     const passwordHash = await hashPassword(input.password);
-    const docRef = await addDoc(collection(db, 'accounts'), {
+    const newId = await pushRtdbRecord('accounts', {
       username: cleanUser,
       displayName: cleanName,
       passwordHash,
@@ -470,7 +482,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       'account_create',
       `បានបង្កើតគណនីថ្មី "${cleanName}" (@${cleanUser})`,
       `សិទ្ធិ: ${input.role === 'admin' ? 'Admin' : 'សមាជិក'}`,
-      docRef.id
+      newId
     );
     return { ok: true };
   };
@@ -516,7 +528,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     if (Object.keys(payload).length === 0) return { ok: true };
 
-    await updateDoc(doc(db, 'accounts', id), payload);
+    await update(ref(rtdb, `accounts/${id}`), stripUndefined(payload));
     await logActivity(
       'account_update',
       `បានកែប្រែគណនី "${payload.displayName || target.displayName}" (@${target.username})`,
@@ -542,7 +554,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     }
 
-    await deleteDoc(doc(db, 'accounts', id));
+    await remove(ref(rtdb, `accounts/${id}`));
     await logActivity(
       'account_delete',
       `បានលុបគណនី "${target.displayName}" (@${target.username})`,
@@ -554,14 +566,17 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const clearActivityLogs = async () => {
     if (!currentUser || currentUser.role !== 'admin') return;
-    const snap = await getDocs(collection(db, 'activity_logs'));
-    const docsList = snap.docs;
-    for (let i = 0; i < docsList.length; i += 400) {
-      const batch = writeBatch(db);
-      docsList.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
-      await batch.commit();
-    }
+    await remove(ref(rtdb, 'activity_logs'));
     await logActivity('settings_update', 'បានសម្អាតកំណត់ត្រាសកម្មភាពចាស់ៗទាំងអស់');
+  };
+
+  const resyncFromFirestore = async (): Promise<MigrationCounts> => {
+    const res = await migrateFirestoreToRtdb(true);
+    await logActivity(
+      'settings_update',
+      `បានពិនិត្យ និងផ្ទេរទិន្នន័យបន្ថែមពី Firestore (${res.counts.transactions} ប្រតិបត្តិការ)`
+    );
+    return res.counts;
   };
 
   const addTransaction = async (tx: Omit<Transaction, 'id'>) => {
@@ -571,10 +586,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       ...(currentUser?.id && !tx.createdById ? { createdById: currentUser.id } : {}),
       ...(actorName && !tx.createdByName ? { createdByName: actorName } : {}),
     };
-    const ref = await addDoc(collection(db, 'transactions'), payload);
+    const newId = await pushRtdbRecord('transactions', payload);
     const detailsParts = [`ថ្ងៃ: ${tx.date}`];
     if (tx.description?.trim()) detailsParts.push(tx.description.trim());
-    await logActivity('tx_create', `បានបន្ថែម ${formatTxLogSummary(payload)}`, detailsParts.join(' • '), ref.id);
+    await logActivity('tx_create', `បានបន្ថែម ${formatTxLogSummary(payload)}`, detailsParts.join(' • '), newId);
   };
 
   const updateTransaction = async (id: string, tx: Partial<Transaction>) => {
@@ -586,7 +601,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       ...(actorName ? { updatedByName: actorName } : {}),
       updatedAt: Date.now(),
     };
-    await updateDoc(doc(db, 'transactions', id), payload);
+    await update(ref(rtdb, `transactions/${id}`), stripUndefined(payload));
 
     const merged = existing ? { ...existing, ...payload } : payload;
     const oldDesc = existing ? formatTxLogSummary(existing) : '';
@@ -597,7 +612,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const deleteTransaction = async (id: string) => {
     const existing = transactions.find((t) => t.id === id);
-    await deleteDoc(doc(db, 'transactions', id));
+    await remove(ref(rtdb, `transactions/${id}`));
     const summary = existing ? `បានលុប ${formatTxLogSummary(existing)}` : 'បានលុបប្រតិបត្តិការមួយ';
     const detail = existing
       ? `ថ្ងៃ: ${existing.date}${existing.createdByName ? ` • ម្ចាស់ដើម: ${existing.createdByName}` : ''}${existing.description ? ` • ${existing.description}` : ''}`
@@ -606,36 +621,36 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const addBudget = async (bg: Omit<Budget, 'id'>) => {
-    const ref = await addDoc(collection(db, 'budgets'), bg);
-    await logActivity('budget_create', `បានបង្កើតថវិកា "${bg.name}"`, `${bg.limitAmount.toLocaleString()} ${bg.currency}`, ref.id);
+    const newId = await pushRtdbRecord('budgets', bg as Record<string, any>);
+    await logActivity('budget_create', `បានបង្កើតថវិកា "${bg.name}"`, `${bg.limitAmount.toLocaleString()} ${bg.currency}`, newId);
   };
 
   const updateBudget = async (id: string, bg: Partial<Budget>) => {
     const existing = budgets.find((b) => b.id === id);
-    await updateDoc(doc(db, 'budgets', id), bg);
+    await update(ref(rtdb, `budgets/${id}`), stripUndefined(bg));
     await logActivity('budget_update', `បានកែប្រែថវិកា "${bg.name || existing?.name || ''}"`, undefined, id);
   };
 
   const deleteBudget = async (id: string) => {
     const existing = budgets.find((b) => b.id === id);
-    await deleteDoc(doc(db, 'budgets', id));
+    await remove(ref(rtdb, `budgets/${id}`));
     await logActivity('budget_delete', `បានលុបថវិកា "${existing?.name || id}"`, undefined, id);
   };
 
   const addCategory = async (cat: Omit<Category, 'id'>) => {
-    const ref = await addDoc(collection(db, 'categories'), cat);
-    await logActivity('category_create', `បានបន្ថែមប្រភេទ "${cat.name}"`, cat.type === 'income' ? 'ចំណូល' : 'ចំណាយ', ref.id);
+    const newId = await pushRtdbRecord('categories', cat as Record<string, any>);
+    await logActivity('category_create', `បានបន្ថែមប្រភេទ "${cat.name}"`, cat.type === 'income' ? 'ចំណូល' : 'ចំណាយ', newId);
   };
 
   const updateCategory = async (id: string, cat: Partial<Category>) => {
     const existing = categories.find((c) => c.id === id);
-    await updateDoc(doc(db, 'categories', id), cat);
+    await update(ref(rtdb, `categories/${id}`), stripUndefined(cat));
     await logActivity('category_update', `បានកែប្រែប្រភេទ "${cat.name || existing?.name || ''}"`, undefined, id);
   };
 
   const deleteCategory = async (id: string) => {
     const existing = categories.find((c) => c.id === id);
-    await deleteDoc(doc(db, 'categories', id));
+    await remove(ref(rtdb, `categories/${id}`));
     await logActivity('category_delete', `បានលុបប្រភេទ "${existing?.name || id}"`, undefined, id);
   };
 
@@ -645,7 +660,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setGoogleSheetSettings({ webAppUrl: cleanUrl, sheetViewLink: cleanViewLink });
     localStorage.setItem('g_apps_script_url', cleanUrl);
     localStorage.setItem('g_sheet_view_link', cleanViewLink);
-    await setDoc(doc(db, 'settings', 'google_sheet_sync'), {
+    await set(ref(rtdb, 'settings/google_sheet_sync'), {
       webAppUrl: cleanUrl,
       sheetViewLink: cleanViewLink,
       updatedAt: Date.now()
@@ -665,30 +680,32 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const restoreBackup = async (backupData: any): Promise<boolean> => {
     try {
-      const promises: Promise<void>[] = [];
-      
+      const patch: Record<string, unknown> = {};
+
       if (backupData.transactions && Array.isArray(backupData.transactions)) {
         for (const t of backupData.transactions) {
           const { id, ...data } = t;
-          if (id) promises.push(setDoc(doc(db, 'transactions', id), data));
+          if (id) patch[`transactions/${id}`] = stripUndefined(data);
         }
       }
-      
+
       if (backupData.categories && Array.isArray(backupData.categories)) {
         for (const c of backupData.categories) {
           const { id, ...data } = c;
-          if (id) promises.push(setDoc(doc(db, 'categories', id), data));
+          if (id) patch[`categories/${id}`] = stripUndefined(data);
         }
       }
-      
+
       if (backupData.budgets && Array.isArray(backupData.budgets)) {
         for (const b of backupData.budgets) {
           const { id, ...data } = b;
-          if (id) promises.push(setDoc(doc(db, 'budgets', id), data));
+          if (id) patch[`budgets/${id}`] = stripUndefined(data);
         }
       }
-      
-      await Promise.all(promises);
+
+      if (Object.keys(patch).length > 0) {
+        await update(ref(rtdb), patch);
+      }
 
       if (backupData.settings) {
         if (backupData.settings.exchangeRate) setExchangeRate(backupData.settings.exchangeRate);
@@ -756,6 +773,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       deleteAccount,
       logActivity,
       clearActivityLogs,
+      resyncFromFirestore,
       isCalculatorOpen,
       setIsCalculatorOpen
     }}>

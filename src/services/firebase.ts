@@ -1,9 +1,11 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDdSd3fW5TfEus56E3L1LzAc1C5s0p9PHw",
   authDomain: "finance-record-vathanak.firebaseapp.com",
+  databaseURL: "https://finance-record-vathanak-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "finance-record-vathanak",
   storageBucket: "finance-record-vathanak.firebasestorage.app",
   messagingSenderId: "355419681968",
@@ -12,4 +14,6 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+export const rtdb = getDatabase(app);
+export const firestoreDb = getFirestore(app);
+export const db = firestoreDb;
